@@ -1,0 +1,10 @@
+{
+  "name":"DM COCKPIT — Sly Flourish",
+  "short_name":"DM COCKPIT",
+  "start_url":"./",
+  "display":"standalone",
+  "orientation":"landscape",
+  "background_color":"#080706",
+  "theme_color":"#0b0908",
+  "description":"Console MJ D&D 5e pour préparation Sly Flourish par composants et lieux vivants."
+}
