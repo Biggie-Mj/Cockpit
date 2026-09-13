@@ -30,9 +30,3 @@ L’application accepte aussi un objet unique ou un tableau JSON brut pour ces d
 - La démo contient un journal de partie illustratif.
 - Chaque ligne du journal peut être modifiée ou effacée individuellement.
 - Export texte chronologique du journal via le bouton Export.
-
-
-### Correctif 1.5.1
-- Le menu `…` affiche désormais explicitement **Importer une session**.
-- Ce bouton ouvre le sélecteur Fichiers de l’iPad et accepte les fichiers `.cockpit` exportés ou fournis pour les tests.
-- Aucun autre comportement ni élément d’interface n’a été modifié.
