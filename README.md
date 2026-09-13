@@ -1,33 +1,22 @@
-# DM COCKPIT V0.4 — Sly Flourish
+# DM COCKPIT V0.5 — Sly Flourish
 
-Version corrective et ergonomique pour iPad paysage. Elle conserve la préparation par composants de la V0.3 et ajoute les retours de table demandés.
+Console MJ D&D 5e optimisée pour iPad paysage.
 
-## V0.4
+## Nouveautés V0.5
 
-- cadres de lieux, munitions et cartes à hauteur dynamique ; texte long toujours renvoyé à la ligne ;
-- secrets révélés conservés dans le tiroir, code vert, symbole de méthode et surbrillance verte pendant 4 secondes ;
-- sélecteur de méthode de révélation corrigé et toujours cliquable ;
-- spotlights remplacés par un compteur 🌟 : clic sur l’étoile = +1, flash jaune 3 s, tri décroissant automatique ;
-- leader(s) en bleu ; retard de 2–4 sur le joueur précédent en orange, 5+ en rouge ;
-- clic sur le cartouche PJ = popup d’idées de spotlight modifiables, ajoutables et supprimables ;
-- gestionnaire local de sessions via `•••` : sauvegarde d’une préparation ou d’une partie en cours et reprise ultérieure ;
-- Strong Start en popup central avec bouton `Joué`, FX de début de session, puis disparition du menu de gauche ;
-- injection persistante des munitions : situations violettes et menaces rouges dans le lieu actuel, surbrillance activable/désactivable ;
-- menu Injecter conserve les munitions déjà injectées en vert, assombries et cochées ;
-- onglet PNJ : tous les PNJ sont toujours visibles, avec `+ Ici / ✓ Ici` et bouton `Créer` ;
-- PNJ présents affichés directement sous le concept du lieu avec initiales cliquables ;
-- créer un PNJ à la volée réutilise le formulaire PNJ existant ;
-- un PNJ reste dans la bibliothèque globale même s’il est affecté à un ou plusieurs lieux.
-
-## Sauvegardes
-
-- état courant : `dm-cockpit-v04` ;
-- sessions nommées : `dm-cockpit-v04-sessions` ;
-- backups tournants : `dm-cockpit-v04-backups` ;
-- migration automatique depuis V0.3 puis V0.2.
+- Strong Start en mode Table à hauteur dynamique : le texte ne déborde plus et la liste des lieux se redimensionne proprement.
+- Sous les lieux, le **Fil rouge** remplace les anciennes Munitions et reste pilotable avec les mêmes coches « Si les PJ ne font rien » qu’en Préparation.
+- L’onglet **Rythme** remplace Menaces et regroupe **Situations** + **Menaces**, avec accès à `⚡ Injecter`.
+- Une injection apparaît dans le lieu courant comme **MENACE INJECTÉE** (rouge) ou **SITUATION INJECTÉE** (violet). Un toucher active/désactive sa surbrillance.
+- Aucun PNJ n’est pré-affecté aux lieux dans la démo. Les PNJ restent globaux et peuvent être ajoutés à plusieurs lieux.
+- Le bouton **NOTE** ouvre maintenant l’historique de toutes les notes de session et permet d’en ajouter sans fermer le panneau.
+- Nouvelle vraie session démo **Royaumes Oubliés** : *Le Relais de la Lune Brisée*, avec Pik, Tuskhan, Wonq et Silas, 5 lieux simples, 4 PNJ complets, 10 secrets, situations, menaces et récompenses. Elle est automatiquement disponible dans **••• → Sessions sauvegardées**.
+- Migration automatique des données locales V0.4/V0.3/V0.2 vers la V0.5.
 
 ## Installation
 
-Déposer ce dossier dans `Table-new-test/dm-cockpit/`. GitHub Pages :
+Déposer le contenu du dossier `dm-cockpit/` dans `Table-new-test/dm-cockpit/`.
+
+Adresse GitHub Pages :
 
 `https://biggie-mj.github.io/Table-new-test/dm-cockpit/`

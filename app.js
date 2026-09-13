@@ -1,7 +1,8 @@
-const STORAGE_KEY='dm-cockpit-v04';
-const LEGACY_KEYS=['dm-cockpit-v03','dm-cockpit-v02'];
-const BACKUP_KEY='dm-cockpit-v04-backups';
-const SAVED_SESSIONS_KEY='dm-cockpit-v04-sessions';
+const STORAGE_KEY='dm-cockpit-v05';
+const LEGACY_KEYS=['dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
+const BACKUP_KEY='dm-cockpit-v05-backups';
+const SAVED_SESSIONS_KEY='dm-cockpit-v05-sessions';
+const LEGACY_SAVED_SESSIONS_KEYS=['dm-cockpit-v05-sessions'];
 const AUTO_BACKUP_MS=30*60*1000;
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
@@ -12,89 +13,88 @@ const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'0.4',
-  title:'One-shot · La Fausse Hydre',
+  version:'0.5',
+  title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
-  activeLocationId:'l2',
-  previewLocationId:'l2',
+  activeLocationId:'l1',
+  previewLocationId:'l1',
   contextTab:'npcs',
   libraryTab:'secrets',
+  sessionStartedAt:null,
+  lastAutoBackupAt:null,
+  saveSlotId:null,
   players:[
-    {id:'p1',name:'Pik Ekrok',spotlightIdeas:['Sauver quelqu’un que les autres ont déjà oublié.'],spotlightCount:0},
-    {id:'p2',name:'Tuskhan',spotlightIdeas:['Un choix moral où la force seule n’est pas la meilleure réponse.'],spotlightCount:0},
-    {id:'p3',name:'Wonq',spotlightIdeas:['Son Registre des Absents contredit directement la mémoire du groupe.'],spotlightCount:0},
-    {id:'p4',name:'Silas',spotlightIdeas:['Repérer une incohérence matérielle avant qu’elle ne soit expliquée.'],spotlightCount:0}
+    {id:'p1',name:'Pik Ekrok',spotlightIdeas:['Donner à Pik une personne vulnérable à protéger ou à soigner sous pression.'],spotlightCount:0},
+    {id:'p2',name:'Tuskhan',spotlightIdeas:['Proposer à Tuskhan un obstacle où l’intimidation et la force ne sont pas les seules solutions.'],spotlightCount:0},
+    {id:'p3',name:'Wonq',spotlightIdeas:['Faire apparaître un disparu, un nom oublié ou un témoignage incomplet qui parle à son rôle de Gardien des Absents.'],spotlightCount:0},
+    {id:'p4',name:'Silas',spotlightIdeas:['Placer un détail matériel ou une piste discrète que Silas peut remarquer avant les autres.'],spotlightCount:0}
   ],
   thread:{
-    goal:'La Fausse Hydre cherche à éliminer les personnes qui commencent à remarquer les incohérences qu’elle laisse derrière elle.',
+    goal:'Skarz, chef gobelours du clan Dent-Cassée, veut mettre la main sur une vieille carte de contrebandiers avant qu’une patrouille de Daggerford ne sécurise la région.',
     steps:[
-      {id:'ts1',text:'Les survivants de l’expédition de Clifftop sont isolés.',done:true},
-      {id:'ts2',text:'Les témoins qui remarquent les absences deviennent des cibles.',done:false},
-      {id:'ts3',text:'Les dernières preuves matérielles sont dispersées ou détruites.',done:false},
-      {id:'ts4',text:'Le village cesse complètement de se souvenir de l’expédition.',done:false}
+      {id:'ts1',text:'Les gobelins identifient qui possède la carte.',done:false},
+      {id:'ts2',text:'Ils enlèvent un témoin et récupèrent une partie de l’itinéraire.',done:false},
+      {id:'ts3',text:'Skarz atteint la cache avant les PJ et arme sa bande avec son contenu.',done:false},
+      {id:'ts4',text:'Le clan quitte la région avant l’arrivée des renforts de Daggerford.',done:false}
     ]
   },
   strongStart:{
-    text:'Sur la route de Cendrevoie, un cheval sans cavalier surgit au galop. Sa selle est tachée de sang. Deux sacs sont attachés à l’arrière : l’un contient le matériel d’un membre de Clifftop ; l’autre, des rations préparées pour cinq voyageurs. Les PJ sont persuadés d’être partis à quatre. Que faites-vous ?',
+    text:'Alors que les PJ prennent leur repas au Relais de la Lune Brisée, un chariot marchand dévale la route et s’écrase contre l’abreuvoir. Le conducteur est blessé, une flèche gobeline plantée dans l’épaule. Il agrippe le premier aventurier à sa portée : « Ils ont pris ma fille… et ils cherchent la carte. » Au même instant, un cor retentit dans les bois. Que faites-vous ?',
     used:false
   },
   locations:[
-    {id:'l1',name:'Cendrevoie',tier:'main',status:'visited',concept:'Un village frontière où les habitudes quotidiennes trahissent des absences que personne ne peut nommer.',visuals:['Des maisons entretenues mais officiellement inhabitées.','Des tables dressées avec trop de couverts.','Des portraits où un espace semble avoir été découpé.'],impulse:'Faire disparaître ce qui dérange sans que personne ne remarque le vide.',situation:'Un garde vient de disparaître. Ses collègues continuent instinctivement à laisser une place vide pendant les rondes.',faction:'Garde de Cendrevoie',localPlot:'Maela cherche qui falsifie les registres, sans envisager qu’elle puisse elle-même avoir oublié la personne responsable.',regionalPlot:'Plusieurs voyageurs ont disparu sur la route proche des Mournlands.',mainPlot:'Les mêmes incohérences apparaissent dans les rapports des expéditions de Clifftop.',danger:'Le chant devient plus présent lorsque les PJ commencent à comparer leurs souvenirs.',reward:'Une clé sans propriétaire qui ouvre une maison officiellement vide.',ifIgnored:'Un autre habitant disparaît avant l’aube.',npcIds:['n1']},
-    {id:'l2',name:'Auberge du Cerf Gris',tier:'main',status:'current',concept:'Une auberge chaleureuse dont les routines ont conservé la forme de personnes que les mémoires ont effacées.',visuals:['Cinq lits préparés dans une chambre louée à quatre aventuriers.','Un manteau sans propriétaire derrière une porte.','Une assiette supplémentaire posée puis retirée machinalement.'],impulse:'Répéter obstinément les habitudes laissées par les disparus.',situation:'Elsa prépare chaque soir une place supplémentaire et devient agressive si quelqu’un lui demande pour qui elle est destinée.',faction:'Aucune faction structurée',localPlot:'Elsa pense qu’un client lui vole de la nourriture pendant la nuit.',regionalPlot:'Des voyageurs cessent régulièrement d’être attendus par leurs proches.',mainPlot:'Une chambre a été préparée pour cinq membres de Clifftop, pas quatre.',danger:'Le groupe risque de se séparer en fouillant les étages et la cave.',reward:'Un paquet d’effets personnels appartenant à quelqu’un que les PJ ne reconnaissent pas.',ifIgnored:'Elsa descend seule à la cave en pleine nuit et ne remonte pas.',npcIds:['n2']},
-    {id:'l3',name:'Maison communale',tier:'main',status:'unvisited',concept:'Le seul endroit où la mémoire écrite résiste imparfaitement à ce que les habitants oublient.',visuals:['Des registres dont certaines lignes ont été grattées.','Une numérotation de maisons qui saute plusieurs nombres.','Des casiers contenant des objets sans propriétaire.'],impulse:'Conserver des traces que personne ne sait interpréter.',situation:'Les registres démontrent que la population réelle du village a baissé sans qu’aucun décès ou départ ne soit enregistré.',faction:'Administration locale',localPlot:'Un employé dissimule de petites falsifications sans rapport avec les disparitions.',regionalPlot:'Les chiffres de ravitaillement ne correspondent plus à la population déclarée.',mainPlot:'Les noms d’aventuriers de Clifftop ont été partiellement effacés.',danger:'Quelqu’un tente de brûler un registre devenu trop compromettant.',reward:'Une page arrachée mentionnant l’arrivée d’un groupe plus nombreux que les PJ ne s’en souviennent.',ifIgnored:'Les documents les plus anciens sont détruits au petit matin.',npcIds:['n1']},
-    {id:'l4',name:'Souterrains de Cendrevoie',tier:'reserve',status:'unvisited',concept:'Un réseau ancien sous le village, assez large pour laisser passer quelque chose de bien plus grand qu’un humanoïde.',visuals:[],impulse:'Attirer les isolés toujours plus profondément.',situation:'Des traces récentes montrent qu’une masse énorme circule entre plusieurs accès sous les bâtiments.',faction:'',localPlot:'',regionalPlot:'',mainPlot:'',danger:'Le chant résonne dans la pierre et brouille constamment la perception.',reward:'Des effets personnels des disparus.',ifIgnored:'Une nouvelle galerie permet à la créature d’atteindre une autre partie du village.',npcIds:['n3']},
-    {id:'l5',name:'Ancienne route de Vathirond',tier:'reserve',status:'unvisited',concept:'Une route abandonnée où plusieurs expéditions ont laissé des traces contradictoires.',visuals:[],impulse:'',situation:'Des empreintes et un camp abandonné suggèrent un voyageur supplémentaire.',faction:'',localPlot:'',regionalPlot:'',mainPlot:'',danger:'',reward:'',ifIgnored:'',npcIds:[]}
+    {id:'l1',name:'Relais de la Lune Brisée',tier:'main',status:'current',concept:'Une auberge fortifiée sur la route entre Daggerford et le Bois d’Ardeep, refuge des voyageurs et carrefour des rumeurs.',visuals:['Une grande enseigne de lune fendue grince au vent.','Des chariots boueux s’entassent autour d’un abreuvoir de pierre.','Une cheminée monumentale domine une salle commune pleine de voyageurs.'],impulse:'Réunir des inconnus qui ont tous quelque chose à perdre sur la route.',situation:'Un marchand vient d’arriver blessé après une embuscade gobeline ; sa fille a été enlevée et une carte ancienne intéresse les ravisseurs.',faction:'Voyageurs et marchands de la Côte des Épées',localPlot:'Plusieurs clients soupçonnent qu’un informateur des gobelins fréquente l’auberge.',regionalPlot:'Les attaques sur la route deviennent assez nombreuses pour inquiéter Daggerford.',mainPlot:'La carte recherchée mène à une ancienne cache de contrebandiers.',danger:'Des éclaireurs gobelins surveillent les sorties du relais.',reward:'Des chevaux frais, des provisions et la confiance des marchands.',ifIgnored:'Les gobelins reviennent de nuit pour fouiller le chariot du marchand.',npcIds:[]},
+    {id:'l2',name:'Vieux Moulin d’Ardeep',tier:'main',status:'unvisited',concept:'Un moulin abandonné au bord d’un ruisseau, utilisé comme point de rendez-vous par les éclaireurs gobelins.',visuals:['Une roue à aubes immobile couverte de mousse.','Des sacs de grain éventrés servent de couchettes.','Une cloche rouillée pend sous l’auvent.'],impulse:'Transformer tout bruit ou mouvement en alerte.',situation:'Deux gobelins surveillent une prisonnière pendant qu’un troisième attend un messager.',faction:'Clan Dent-Cassée',localPlot:'L’un des gobelins envisage de déserter avec une bourse volée.',regionalPlot:'Le moulin sert de relais entre plusieurs groupes de pillards.',mainPlot:'Un fragment de la carte est caché dans la doublure d’un sac de grain.',danger:'La cloche peut prévenir des renforts cachés dans les bois.',reward:'La prisonnière, un fragment de carte et une petite caisse de marchandises volées.',ifIgnored:'La prisonnière est déplacée vers le camp de Skarz avant la nuit.',npcIds:[]},
+    {id:'l3',name:'Chapelle de Tymora',tier:'main',status:'unvisited',concept:'Une petite chapelle de route entretenue par un prêtre qui accueille voyageurs, blessés et superstitieux.',visuals:['Des rubans porte-bonheur flottent autour d’une statue de Tymora.','Une vasque de cuivre recueille les pièces laissées par les voyageurs.','Des lits de fortune occupent l’arrière de la nef.'],impulse:'Offrir une seconde chance à ceux qui osent la saisir.',situation:'Un éclaireur de Daggerford blessé affirme avoir vu des gobelins transporter une captive vers le nord.',faction:'Clergé de Tymora',localPlot:'Un pèlerin a volé une offrande et n’ose plus quitter la chapelle.',regionalPlot:'La patrouille de Daggerford est dispersée et manque d’informations fiables.',mainPlot:'Le prêtre reconnaît le symbole gravé sur la carte comme une ancienne marque de contrebandiers.',danger:'Un espion peut entendre ce que les PJ apprennent ici.',reward:'Soins, bénédiction mineure et informations sur les vieux chemins.',ifIgnored:'L’éclaireur repart seul et tombe dans une nouvelle embuscade.',npcIds:[]},
+    {id:'l4',name:'Bosquet du Bois d’Ardeep',tier:'reserve',status:'unvisited',concept:'Un petit bosquet ancien où les pistes ordinaires deviennent difficiles à suivre.',visuals:[],impulse:'',situation:'Les gobelins ont laissé des marques de passage et un paquet abandonné dans les fougères.',faction:'',localPlot:'',regionalPlot:'',mainPlot:'',danger:'',reward:'',ifIgnored:'',npcIds:[]},
+    {id:'l5',name:'Gué de la Delimbiyr',tier:'reserve',status:'unvisited',concept:'Un passage peu profond utilisé par marchands, contrebandiers et patrouilles.',visuals:[],impulse:'',situation:'Des traces fraîches montrent qu’un groupe chargé a traversé récemment vers l’ouest.',faction:'',localPlot:'',regionalPlot:'',mainPlot:'',danger:'',reward:'',ifIgnored:'',npcIds:[]}
   ],
   npcs:[
-    {id:'n1',name:'Maela Dorn',role:'Sergente elfe · Garde de Cendrevoie',identity:'Une elfe disciplinée qui maintient l’ordre alors que ses propres souvenirs se fissurent.',wants:'Évacuer les habitants sans provoquer de panique.',fears:'Que ses hommes comprennent qu’elle a oublié plusieurs gardes.',knows:'Trois maisons officiellement inhabitées continuent à recevoir des rations.',hides:'Elle possède une clé dont elle ne connaît plus l’origine.',trait:'Frotte son pouce contre son insigne avant chaque réponse difficile.'},
-    {id:'n2',name:'Elsa Varn',role:'Aubergiste',identity:'Une femme épuisée qui compense les trous de mémoire par des habitudes rigides.',wants:'Que les étrangers repartent avant qu’un nouveau malheur arrive.',fears:'Entrer dans la cave après la tombée de la nuit.',knows:'Certaines chambres semblent utilisées sans qu’aucun client ne soit enregistré.',hides:'Elle met chaque soir une cinquième assiette sans savoir pourquoi.',trait:'Compte silencieusement les couverts en parlant.'},
-    {id:'n3',name:'Orax',role:'Forgelier · Aventurier disparu',identity:'Un forgelier endommagé dont certaines routines résistent mieux que les souvenirs organiques.',wants:'Retrouver les autres membres de son expédition.',fears:'Être le prochain à disparaître sans laisser de trace consciente.',knows:'Le chant cesse momentanément lorsqu’il subit un choc violent.',hides:'Il a déjà vu la créature mais son récit se fragmente dès qu’il tente de la décrire.',trait:'Répète mécaniquement les noms de ses compagnons pour ne pas les perdre.'},
-    {id:'n4',name:'Jikled',role:'Responsable de Clifftop',identity:'Un gnome vétéran qui dissimule son inquiétude derrière une efficacité méthodique.',wants:'Ramener les disparus et restaurer la réputation de Clifftop.',fears:'Envoyer une troisième équipe à la mort.',knows:'Six aventuriers sont officiellement portés disparus.',hides:'Il soupçonne qu’un détail essentiel manque aux rapports précédents.',trait:'Tapote deux fois chaque dossier avant de le remettre.'}
+    {id:'n1',name:'Mara Vell',role:'Aubergiste humaine',identity:'Une aubergiste pragmatique qui connaît les habitués de la route mieux que les gardes.',wants:'Maintenir son relais sûr et fréquenté.',fears:'Que les attaques gobelines fassent fuir les caravanes.',knows:'Un voyageur encapuchonné a posé beaucoup de questions sur le marchand blessé.',hides:'Elle conserve sous son comptoir une arbalète chargée et un petit coffre de contrebande.',trait:'Essuie toujours le même verre lorsqu’elle réfléchit.'},
+    {id:'n2',name:'Frère Edran',role:'Prêtre de Tymora',identity:'Un prêtre souriant qui croit que la chance récompense surtout ceux qui prennent des risques raisonnables.',wants:'Ramener les voyageurs blessés vivants jusqu’à Daggerford.',fears:'Voir les gens confondre chance et imprudence.',knows:'Les symboles de la carte appartiennent à d’anciens contrebandiers de la région.',hides:'Il a lui-même utilisé ces chemins lorsqu’il était jeune aventurier.',trait:'Fait tourner une pièce entre ses doigts avant de donner un conseil.'},
+    {id:'n3',name:'Sarya Feuilleclaire',role:'Éclaireuse elfe',identity:'Une rôdeuse du Bois d’Ardeep qui préfère les preuves aux rumeurs.',wants:'Identifier le camp principal du clan Dent-Cassée.',fears:'Que les humains de Daggerford incendient une partie du bois pour déloger les gobelins.',knows:'Les pillards utilisent le vieux moulin comme relais.',hides:'Elle a laissé partir un jeune gobelin qui refusait de combattre.',trait:'Interrompt parfois une conversation pour écouter un bruit lointain.'},
+    {id:'n4',name:'Borin Barbegrise',role:'Marchand nain',identity:'Un marchand obstiné dont le chariot contient plus de secrets que de marchandises ordinaires.',wants:'Récupérer sa fille Lysa et sauver sa cargaison.',fears:'Que les PJ découvrent qu’il transportait aussi des objets non déclarés.',knows:'Les gobelins cherchent une carte trouvée dans un vieux coffre acheté à Waterdeep.',hides:'Une seconde moitié de la carte est cousue dans sa veste.',trait:'Jure par Moradin dès qu’on touche à ses affaires.'}
   ],
   secrets:[
-    {id:'c1',title:'Quelqu’un manque',text:'Les objets et les habitudes indiquent régulièrement une personne de plus que le nombre dont tout le monde se souvient.',revealed:false,revealedAt:null,method:''},
-    {id:'c2',title:'Le cinquième compagnon',text:'Les PJ ont quitté Clifftop à cinq, pas à quatre.',revealed:false,revealedAt:null,method:''},
-    {id:'c3',title:'Les traces matérielles résistent',text:'La créature efface la reconnaissance et la mémoire bien plus facilement qu’elle ne fait disparaître les preuves physiques.',revealed:false,revealedAt:null,method:''},
-    {id:'c4',title:'Le chant impose le voile',text:'Certaines incohérences deviennent perceptibles lorsque le chant ne peut plus être entendu.',revealed:false,revealedAt:null,method:''},
-    {id:'c5',title:'Un choc peut briser la perception',text:'Une douleur soudaine, une surdité ou un bruit couvrant peut permettre de percevoir brièvement ce qui est normalement ignoré.',revealed:false,revealedAt:null,method:''},
-    {id:'c6',title:'Les registres ont été modifiés',text:'Des noms ont disparu alors que la structure des documents prouve qu’ils existaient.',revealed:false,revealedAt:null,method:''},
-    {id:'c7',title:'Quatre disparus vivent encore',text:'Parmi les six aventuriers recherchés, quatre sont encore vivants quelque part autour ou sous Cendrevoie.',revealed:false,revealedAt:null,method:''},
-    {id:'c8',title:'La créature chasse les lucides',text:'Les personnes qui commencent à remarquer les incohérences deviennent des cibles prioritaires.',revealed:false,revealedAt:null,method:''},
-    {id:'c9',title:'Orax se souvient autrement',text:'Certaines routines du forgelier conservent des informations même lorsque son interprétation consciente échoue.',revealed:false,revealedAt:null,method:''},
-    {id:'c10',title:'Le village repose au-dessus de l’antre',text:'Plusieurs caves et puits communiquent avec un réseau ancien qui converge sous Cendrevoie.',revealed:false,revealedAt:null,method:''}
+    {id:'c1',title:'Deux moitiés de carte',text:'La carte des contrebandiers a été séparée en deux morceaux ; Borin possède encore la seconde moitié.',revealed:false,revealedAt:null,method:''},
+    {id:'c2',title:'Le moulin est un relais',text:'Le Vieux Moulin d’Ardeep n’est pas le camp principal mais un poste de surveillance et de transfert.',revealed:false,revealedAt:null,method:''},
+    {id:'c3',title:'Un informateur au relais',text:'Quelqu’un renseigne les gobelins sur les caravanes qui quittent le Relais de la Lune Brisée.',revealed:false,revealedAt:null,method:''},
+    {id:'c4',title:'La captive est vivante',text:'Lysa est encore vivante et les gobelins veulent l’échanger contre le reste de la carte.',revealed:false,revealedAt:null,method:''},
+    {id:'c5',title:'Skarz cherche des armes',text:'Le chef gobelours pense que la cache contient des armes et de l’or capables de renforcer son clan.',revealed:false,revealedAt:null,method:''},
+    {id:'c6',title:'Ancien chemin sous les racines',text:'Une vieille piste de contrebandiers traverse le Bois d’Ardeep sans passer par la route principale.',revealed:false,revealedAt:null,method:''},
+    {id:'c7',title:'La patrouille arrive tard',text:'Des renforts de Daggerford sont en route mais ne seront pas là avant demain matin.',revealed:false,revealedAt:null,method:''},
+    {id:'c8',title:'Le clan n’est pas uni',text:'Plusieurs gobelins suivent Skarz par peur et pourraient fuir ou négocier si sa position faiblit.',revealed:false,revealedAt:null,method:''},
+    {id:'c9',title:'La cache est piégée',text:'Les contrebandiers ont protégé l’accès final avec un mécanisme simple mais dangereux.',revealed:false,revealedAt:null,method:''},
+    {id:'c10',title:'Le symbole de Tymora',text:'Un ancien signe gravé près de la cache indique un passage sûr que Frère Edran peut reconnaître.',revealed:false,revealedAt:null,method:''}
   ],
   threats:[
-    {id:'t1',name:'Habitants paniqués',type:'ordinary',summary:'Une foule interprète les incohérences comme une menace provoquée par les étrangers.',notes:'Obstacle social ou complication.',used:false},
-    {id:'t2',name:'Serviteurs désorientés',type:'ordinary',summary:'Des victimes du chant défendent un lieu ou une habitude qu’elles ne comprennent plus.',notes:'Éviter d’en faire des ennemis caricaturaux.',used:false},
-    {id:'t3',name:'Prédateur dans les tunnels',type:'ordinary',summary:'Une créature opportuniste profite des souterrains et des disparitions.',notes:'Peut être sans rapport direct avec la Fausse Hydre.',used:false},
-    {id:'t4',name:'Fausse Hydre',type:'serious',summary:'Menace majeure, d’abord indirecte puis physique.',notes:'Ne pas la montrer trop tôt sans raison fictionnelle.',used:false},
-    {id:'t5',name:'Le chant cesse',type:'event',summary:'Pendant quelques secondes, tout le monde perçoit ce qui était masqué.',notes:'Événement dangereux et révélateur.',used:false}
+    {id:'t1',name:'Éclaireurs gobelins',type:'ordinary',summary:'Deux ou trois gobelins observent, harcèlent puis se replient vers un terrain favorable.',notes:'Menace mobile.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'t2',name:'Worg affamé',type:'ordinary',summary:'Un worg dressé suit une piste ou bloque une retraite.',notes:'Menace physique simple.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'t3',name:'Chamane Dent-Cassée',type:'ordinary',summary:'Un gobelin superstitieux utilise fumée, clochettes et magie mineure pour soutenir les pillards.',notes:'Soutien.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'t4',name:'Skarz le Briseur',type:'serious',summary:'Un gobelours rusé qui préfère obtenir la carte sans perdre inutilement ses guerriers.',notes:'Adversaire sérieux.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'t5',name:'Effondrement de galerie',type:'event',summary:'Une vieille galerie ou un plancher fragilisé cède au pire moment.',notes:'Événement dangereux.',used:false,injected:false,activeInjected:false,injectedLocationId:null}
   ],
   situations:[
-    {id:'s1',text:'Un habitant accuse les PJ d’avoir pris les affaires d’une personne dont personne ne se souvient.',used:false},
-    {id:'s2',text:'Quelqu’un disparaît pendant une conversation ; sa chaise reste encore chaude.',used:false},
-    {id:'s3',text:'Un survivant de Clifftop est aperçu puis fuit sans reconnaître les PJ.',used:false},
-    {id:'s4',text:'Le chant cesse brusquement au milieu d’une scène banale.',used:false},
-    {id:'s5',text:'Une preuve matérielle contredit frontalement un souvenir partagé par tout le groupe.',used:false}
+    {id:'s1',text:'Un messager gobelin arrive en pensant parler à un allié.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'s2',text:'Une caravane apeurée exige une escorte immédiate vers Daggerford.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'s3',text:'La captive laisse discrètement tomber un objet personnel sur la piste.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'s4',text:'Un gobelin blessé propose des informations en échange de sa liberté.',used:false,injected:false,activeInjected:false,injectedLocationId:null},
+    {id:'s5',text:'Un orage brutal transforme les chemins du bois en bourbier.',used:false,injected:false,activeInjected:false,injectedLocationId:null}
   ],
   rewards:[
-    {id:'r1',type:'Ressource',text:'Potions et matériel récupérés sur l’expédition disparue.',used:false},
-    {id:'r2',type:'Information',text:'La preuve que les PJ voyageaient avec un cinquième compagnon.',used:false},
-    {id:'r3',type:'Faveur / contact',text:'Confiance durable de Clifftop si plusieurs disparus reviennent vivants.',used:false}
+    {id:'r1',type:'Ressource',text:'50 po, provisions et matériel de voyage récupérés sur les pillards.',used:false},
+    {id:'r2',type:'Information',text:'Une carte des anciens chemins autour de Daggerford et du Bois d’Ardeep.',used:false},
+    {id:'r3',type:'Faveur / contact',text:'Borin et Mara deviennent des contacts fiables pour de futures aventures sur la Côte des Épées.',used:false}
   ],
   blanks:[
-    {id:'b1',prompt:'Quelqu’un aide discrètement Maela. Qui ?',resolution:'',resolved:false},
-    {id:'b2',prompt:'Une autre présence utilise certains tunnels. Laquelle ?',resolution:'',resolved:false},
-    {id:'b3',prompt:'Le cinquième compagnon avait un lien particulier avec un habitant. Lequel ?',resolution:'',resolved:false}
+    {id:'b1',prompt:'Qui renseigne réellement les gobelins depuis le relais ?',resolution:'',resolved:false},
+    {id:'b2',prompt:'Que contient exactement la cache en plus de l’or attendu ?',resolution:'',resolved:false}
   ],
-  pins:[
-    {id:'pin1',text:'4 des 6 aventuriers recherchés sont encore vivants.'},
-    {id:'pin2',text:'Un seul repos court prévu ; aucun repos long.'}
-  ],
-  journal:[{id:'j1',type:'note',text:'Préparation Sly Flourish V0.2 chargée.',locationId:null,createdAt:nowStamp()}]
+  pins:[],
+  journal:[]
 };
 
-const EMPTY=()=>({version:'0.4',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
+const EMPTY=()=>({version:'0.5',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
 
 let state=load();
 let history=[];
@@ -113,9 +113,10 @@ function normalize(s){
   out.thread=out.thread&&typeof out.thread==='object'?out.thread:base.thread;
   if(!Array.isArray(out.thread.steps))out.thread.steps=[];
   out.strongStart=out.strongStart&&typeof out.strongStart==='object'?out.strongStart:base.strongStart;
-  out.version='0.4';
+  out.version='0.5';
   if(!out.previewLocationId)out.previewLocationId=out.activeLocationId||out.locations[0]?.id||null;
-  if(!['npcs','secrets','threats','pins'].includes(out.contextTab))out.contextTab='npcs';
+  if(out.contextTab==='threats')out.contextTab='rhythm';
+  if(!['npcs','secrets','rhythm','pins'].includes(out.contextTab))out.contextTab='npcs';
   out.players.forEach(p=>{
     if(!Array.isArray(p.spotlightIdeas))p.spotlightIdeas=p.spotlight?[p.spotlight]:[];
     p.spotlightCount=Math.max(0,Number.isFinite(Number(p.spotlightCount))?Number(p.spotlightCount):(p.done?1:0));
@@ -154,8 +155,15 @@ function statusLabel(l){return l.status==='current'?'ACTUEL':l.status==='visited
 function threatTypeLabel(t){return t==='ordinary'?'ORDINAIRE':t==='serious'?'SÉRIEUX':'ÉVÉNEMENT'}
 function getBackups(){try{return JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]')}catch{return []}}
 function setBackups(v){localStorage.setItem(BACKUP_KEY,JSON.stringify(v.slice(0,5)))}
-function getSavedSessions(){try{return JSON.parse(localStorage.getItem(SAVED_SESSIONS_KEY)||'[]')}catch{return []}}
+function getSavedSessions(){try{const raw=localStorage.getItem(SAVED_SESSIONS_KEY);if(raw)return JSON.parse(raw);for(const key of LEGACY_SAVED_SESSIONS_KEYS){const legacy=localStorage.getItem(key);if(legacy){const parsed=JSON.parse(legacy);localStorage.setItem(SAVED_SESSIONS_KEY,JSON.stringify(parsed));return parsed}}return []}catch{return []}}
 function setSavedSessions(v){localStorage.setItem(SAVED_SESSIONS_KEY,JSON.stringify(v.slice(0,40)))}
+function ensureDemoSavedSession(){
+  const list=getSavedSessions();
+  if(list.some(x=>x.id==='demo-forgotten-realms'))return;
+  list.unshift({id:'demo-forgotten-realms',name:'Démo · Le Relais de la Lune Brisée',updatedAt:nowStamp(),builtInDemo:true,state:clone({...DEMO,saveSlotId:null})});
+  setSavedSessions(list);
+}
+
 function createBackup(reason='Automatique'){
   const backups=getBackups();backups.unshift({id:uid('bk'),createdAt:nowStamp(),reason,state:clone(state)});setBackups(backups);
   state.lastAutoBackupAt=Date.now();localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
@@ -235,7 +243,7 @@ function renderPrepSituations(){
   $$('[data-edit-situation]').forEach(b=>b.onclick=()=>openGenericEditor('situation',b.dataset.editSituation));
 }
 
-function renderTable(){renderTableStrongStart();renderTableLocations();renderLiveLocation(previewLocation());renderContextPanel();renderTableSituations()}
+function renderTable(){renderTableStrongStart();renderTableLocations();renderTableThread();renderLiveLocation(previewLocation());renderContextPanel()}
 function renderTableStrongStart(){const b=$('#tableStrongStart'),s=state.strongStart;if(s.used){b.classList.add('hidden');b.onclick=null;return}b.classList.remove('hidden');b.innerHTML=`<span class="eyebrow">STRONG START</span><strong>▶ ${esc(s.text||'Aucun Strong Start préparé.')}</strong>`;b.onclick=openStrongStartPlay}
 function renderTableLocations(){
   const main=state.locations.filter(l=>l.tier!=='reserve'),reserve=state.locations.filter(l=>l.tier==='reserve');
@@ -248,7 +256,7 @@ function renderLiveLocation(l){
   const isCurrent=l.id===state.activeLocationId, visuals=l.visuals||[], npcs=(l.npcIds||[]).map(id=>state.npcs.find(n=>n.id===id)).filter(Boolean);
   const sit=state.situations.filter(x=>x.injected&&x.injectedLocationId===l.id),thr=state.threats.filter(x=>x.injected&&x.injectedLocationId===l.id);
   const npcStrip=npcs.length?`<div class="live-npc-strip"><span class="eyebrow">PNJ PRÉSENTS</span><div class="live-npc-list">${npcs.map(n=>`<button class="live-npc" data-live-npc="${n.id}"><span class="avatar">${initials(n.name)}</span><strong>${esc(n.name)}</strong></button>`).join('')}</div></div>`:'';
-  const injections=(sit.length||thr.length)?`<div class="live-injections"><span class="eyebrow">MUNITIONS INJECTÉES</span><div class="injection-strip">${thr.map(t=>`<button class="injection-chip threat ${t.activeInjected?'active':'inactive'}" data-toggle-injection="threat:${t.id}"><b>⚠ ${esc(t.name)}</b><small>${esc(t.summary||'')}</small></button>`).join('')}${sit.map(s=>`<button class="injection-chip situation ${s.activeInjected?'active':'inactive'}" data-toggle-injection="situation:${s.id}"><b>✦ Situation</b><small>${esc(s.text)}</small></button>`).join('')}</div></div>`:'';
+  const injections=(sit.length||thr.length)?`<div class="live-injections"><div class="injection-strip">${thr.map(t=>`<button class="injection-chip threat ${t.activeInjected?'active':'inactive'}" data-toggle-injection="threat:${t.id}"><span class="eyebrow injection-label">MENACE INJECTÉE</span><b>⚠ ${esc(t.name)}</b><small>${esc(t.summary||'')}</small></button>`).join('')}${sit.map(s=>`<button class="injection-chip situation ${s.activeInjected?'active':'inactive'}" data-toggle-injection="situation:${s.id}"><span class="eyebrow injection-label">SITUATION INJECTÉE</span><b>✦ ${esc(s.text)}</b></button>`).join('')}</div></div>`:'';
   el.innerHTML=`<div class="live-hero"><div><span class="eyebrow">${isCurrent?'LIEU ACTUEL':'APERÇU · LE JEU EST AILLEURS'}</span><h2>${esc(l.name)}</h2><p class="concept">${esc(l.concept||'')}</p>${npcStrip}</div><div class="live-actions">${!isCurrent?`<button id="btnMakeCurrent" class="primary">● Rendre actuel</button><button id="btnReturnCurrent" class="ghost">↩ Actuel</button>`:''}<button id="btnEditPreview" class="ghost">Modifier</button></div></div>${injections}
   <div class="live-core">
     <article><h3>Qu’est-ce qu’on voit ?</h3>${visuals.length?`<ul>${visuals.map(v=>`<li>${esc(v)}</li>`).join('')}</ul>`:'<p class="muted">À improviser.</p>'}</article>
@@ -262,12 +270,15 @@ function renderLiveLocation(l){
   $('#btnEditPreview').onclick=()=>openLocationEditor(l.id);if($('#btnMakeCurrent'))$('#btnMakeCurrent').onclick=()=>makeCurrentLocation(l.id);if($('#btnReturnCurrent'))$('#btnReturnCurrent').onclick=()=>{state.previewLocationId=state.activeLocationId;persist();renderTable()};
   $$('[data-live-npc]').forEach(b=>b.onclick=()=>showNpcSheet(b.dataset.liveNpc));$$('[data-toggle-injection]').forEach(b=>b.onclick=()=>toggleInjectedHighlight(b.dataset.toggleInjection));
 }
-function renderTableSituations(){
-  const arr=state.situations;$('#tableSituations').innerHTML=arr.length?arr.map(s=>`<div class="ammo-line table ${s.injected?'injected':''}"><span>${s.injected?'✓':'○'}</span><span>${esc(s.text)}</span></div>`).join(''):'<div class="empty-mini">Aucune munition préparée.</div>';
+function renderTableThread(){
+  const el=$('#tableThread');if(!el)return;
+  const steps=state.thread.steps||[];
+  el.innerHTML=`<div class="table-thread-goal">${esc(state.thread.goal||'Aucune direction définie.')}</div><div class="table-thread-steps">${steps.length?steps.map((step,i)=>`<div class="table-thread-step ${step.done?'done':''}"><button data-table-thread="${step.id}">${step.done?'✓':i+1}</button><span>${esc(step.text)}</span></div>`).join(''):'<div class="empty-mini">Aucune conséquence préparée.</div>'}</div>`;
+  $$('[data-table-thread]').forEach(b=>b.onclick=()=>commit(()=>{const step=state.thread.steps.find(x=>x.id===b.dataset.tableThread);if(step)step.done=!step.done},'Fil rouge mis à jour'));
 }
 function renderContextPanel(){
   const current=activeLocation(),ids=current?.npcIds||[],allNpcs=state.npcs,secrets=state.secrets,threats=state.threats;
-  const counts={npcs:ids.length,secrets:secrets.filter(s=>!s.revealed).length,threats:threats.filter(t=>!t.injected).length,pins:state.pins.length};
+  const counts={npcs:ids.length,secrets:secrets.filter(s=>!s.revealed).length,rhythm:state.situations.filter(x=>!x.injected).length+threats.filter(t=>!t.injected).length,pins:state.pins.length};
 $$('.context-tab').forEach(b=>{b.classList.toggle('active',b.dataset.context===state.contextTab);const c=b.querySelector('i');if(c)c.textContent=counts[b.dataset.context]||0});
   const el=$('#contextContent');
   if(state.contextTab==='npcs'){
@@ -276,9 +287,11 @@ $$('.context-tab').forEach(b=>{b.classList.toggle('active',b.dataset.context===s
   }else if(state.contextTab==='secrets'){
     el.innerHTML=secrets.length?secrets.map(s=>{const revealed=!!s.revealed,recent=recentlyRevealedSecretId===s.id;return `<div class="context-card secret ${revealed?'revealed':''} ${recent?'recently-revealed':''}"><div class="secret-copy"><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small>${revealed?`<span class="secret-method-badge">${methodIcon(s.method)} ${esc(s.method||'Révélé')}</span>`:''}</div>${revealed?'':revealPendingId===s.id?`<div class="reveal-methods"><button data-secret-method="${s.id}|Conversation" title="Conversation">💬</button><button data-secret-method="${s.id}|Observation" title="Observation">👁</button><button data-secret-method="${s.id}|Document" title="Document">📜</button><button data-secret-method="${s.id}|Magie" title="Magie">✨</button><button data-secret-method="${s.id}|Déduction des joueurs" title="Déduction">🧠</button><button data-secret-method="${s.id}|Autre" title="Autre">✦</button></div>`:`<button class="primary reveal-btn" data-start-reveal="${s.id}">◆ Révéler</button>`}</div>`}).join(''):'<div class="empty-mini">Aucun secret préparé.</div>';
     $$('[data-start-reveal]').forEach(b=>b.onclick=()=>{revealPendingId=b.dataset.startReveal;renderContextPanel()});$$('[data-secret-method]').forEach(b=>b.onclick=()=>{const [id,method]=b.dataset.secretMethod.split('|');revealSecret(id,method)});
-  }else if(state.contextTab==='threats'){
-    el.innerHTML=threats.length?threats.map(t=>`<div class="context-card threat ${t.injected?'injected':''}"><div><span class="eyebrow">${threatTypeLabel(t.type)}</span><strong>${esc(t.name)}</strong><small>${esc(t.summary||'')}</small></div><button data-inject-one-threat="${t.id}" class="${t.injected?'ghost':'primary'}">${t.injected?'✓ Injectée':'⚡ Injecter'}</button></div>`).join(''):'<div class="empty-mini">Aucune menace préparée.</div>';
-    $$('[data-inject-one-threat]').forEach(b=>b.onclick=()=>injectItem('threat',b.dataset.injectOneThreat));
+  }else if(state.contextTab==='rhythm'){
+    const situationRows=state.situations.map(x=>`<div class="rhythm-row situation ${x.injected?'injected':''}"><span class="rhythm-state">${x.injected?'✓':'○'}</span><span>${esc(x.text)}</span></div>`).join('')||'<div class="empty-mini">Aucune situation.</div>';
+    const threatRows=threats.map(t=>`<div class="rhythm-row threat ${t.injected?'injected':''}"><span class="rhythm-state">${t.injected?'✓':'○'}</span><span><strong>${esc(t.name)}</strong><small>${esc(t.summary||'')}</small></span></div>`).join('')||'<div class="empty-mini">Aucune menace.</div>';
+    el.innerHTML=`<div class="context-toolbar rhythm-toolbar"><span>Situations et menaces prêtes à entrer en jeu</span><button id="btnContextInject" class="primary">⚡ Injecter</button></div><section class="rhythm-section"><h3>SITUATIONS</h3>${situationRows}</section><section class="rhythm-section"><h3>MENACES</h3>${threatRows}</section>`;
+    $('#btnContextInject').onclick=()=>{renderInjection();$('#injectDialog').showModal()};
   }else{
     el.innerHTML=`<div class="context-toolbar"><span>Informations sous les yeux</span><button id="btnAddPin" class="ghost">＋</button></div>${state.pins.length?state.pins.map(p=>`<div class="pin-item"><span>📌</span><span>${esc(p.text)}</span><button data-remove-pin="${p.id}">×</button></div>`).join(''):'<div class="empty-mini">Rien d’épinglé.</div>'}`;
     $('#btnAddPin').onclick=()=>openGenericEditor('pin');$$('[data-remove-pin]').forEach(b=>b.onclick=()=>commit(()=>state.pins=state.pins.filter(p=>p.id!==b.dataset.removePin),null));
@@ -333,13 +346,20 @@ function renderLibrary(){
 function bindLibraryActions(){$$('[data-edit-secret]').forEach(b=>b.onclick=()=>openGenericEditor('secret',b.dataset.editSecret));$$('[data-edit-npc]').forEach(b=>b.onclick=()=>openNpcEditor(b.dataset.editNpc));$$('[data-show-npc]').forEach(b=>b.onclick=()=>showNpcSheet(b.dataset.showNpc));$$('[data-edit-generic]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.editGeneric.split(':');openGenericEditor(type,id)});$$('[data-toggle-used]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.toggleUsed.split(':');if(type==='threat')injectItem('threat',id);else commit(()=>{const item=state.rewards.find(x=>x.id===id);if(item)item.used=!item.used},null)});$$('[data-lib-reveal]').forEach(b=>b.onclick=()=>{state.contextTab='secrets';revealPendingId=b.dataset.libReveal;switchView('table');renderTable()})}
 function renderJournal(){const icon={note:'📝',decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗',secret:'◆',location:'◈',canon:'✦'};$('#journalContent').innerHTML=state.journal.length?state.journal.map(j=>`<article class="journal-entry"><time>${fmtTime(j.createdAt)}</time><div><strong>${icon[j.type]||'📝'} ${esc(locationName(j.locationId))}</strong><p>${esc(j.text)}</p></div><small>${new Date(j.createdAt).toLocaleDateString('fr-FR')}</small></article>`).join(''):'<div class="journal-empty">Rien n’est encore devenu canon.</div>'}
 
-function openQuickNote(){const f=$('#quickNoteForm');f.reset();$('#quickNoteDialog').showModal();setTimeout(()=>f.elements.text.focus(),50)}
+function renderQuickNoteHistory(){
+  const el=$('#quickNoteHistory');if(!el)return;
+  const noteTypes=new Set(['note','decision','quote','question','death','loot','lead']);
+  const arr=state.journal.filter(j=>noteTypes.has(j.type));
+  const icon={note:'📝',decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗'};
+  el.innerHTML=arr.length?arr.map(j=>`<article class="note-history-row"><div><span>${icon[j.type]||'📝'}</span><strong>${esc(j.text)}</strong></div><small>${esc(locationName(j.locationId))} · ${fmtTime(j.createdAt)}</small></article>`).join(''):'<div class="empty-mini">Aucune note écrite pour cette session.</div>';
+}
+function openQuickNote(){const f=$('#quickNoteForm');f.reset();renderQuickNoteHistory();$('#quickNoteDialog').showModal();setTimeout(()=>f.elements.text.focus(),50)}
 function renderBackupButton(){const n=getBackups().length;$('#btnBackups').textContent=`Backups de sécurité${n?` · ${n}`:''}`}
 function openBackups(){$('#moreMenu').classList.add('hidden');const b=getBackups();$('#backupList').innerHTML=b.length?b.map(x=>`<div class="backup-row"><div><strong>${esc(x.reason)}</strong><small>${new Date(x.createdAt).toLocaleString('fr-FR')}</small></div><button data-restore-backup="${x.id}" class="ghost">Restaurer</button></div>`).join(''):'<div class="empty-mini">Aucun backup.</div>';$$('[data-restore-backup]').forEach(btn=>btn.onclick=()=>{const x=getBackups().find(z=>z.id===btn.dataset.restoreBackup);if(!x)return;if(confirm('Restaurer ce backup ?')){snapshot();state=normalize(clone(x.state));persist();render();$('#backupsDialog').close();toast('Backup restauré')}});$('#backupsDialog').showModal()}
 function openSessions(){$('#moreMenu').classList.add('hidden');$('#sessionSaveName').value=state.title||'';renderSavedSessions();$('#sessionsDialog').showModal()}
-function renderSavedSessions(){const list=getSavedSessions();$('#savedSessionsList').innerHTML=list.length?list.map(s=>`<article class="saved-session-row"><div><span class="session-state ${s.state?.sessionStartedAt?'running':'prepared'}">${s.state?.sessionStartedAt?'PARTIE EN COURS':'PRÉPARÉE'}</span><strong>${esc(s.name)}</strong><small>Mis à jour ${new Date(s.updatedAt).toLocaleString('fr-FR')}</small></div><div class="saved-session-actions"><button data-load-session="${s.id}" class="primary">Reprendre</button><button data-delete-session="${s.id}" class="danger">×</button></div></article>`).join(''):'<div class="empty-mini">Aucune session sauvegardée.</div>';$$('[data-load-session]').forEach(b=>b.onclick=()=>loadSavedSession(b.dataset.loadSession));$$('[data-delete-session]').forEach(b=>b.onclick=()=>deleteSavedSession(b.dataset.deleteSession))}
+function renderSavedSessions(){const list=getSavedSessions();$('#savedSessionsList').innerHTML=list.length?list.map(s=>`<article class="saved-session-row"><div><span class="session-state ${s.builtInDemo?'demo':s.state?.sessionStartedAt?'running':'prepared'}">${s.builtInDemo?'DÉMO ROYAUMES OUBLIÉS':s.state?.sessionStartedAt?'PARTIE EN COURS':'PRÉPARÉE'}</span><strong>${esc(s.name)}</strong><small>${s.builtInDemo?'Modèle standard prêt à tester':`Mis à jour ${new Date(s.updatedAt).toLocaleString('fr-FR')}`}</small></div><div class="saved-session-actions"><button data-load-session="${s.id}" class="primary">${s.builtInDemo?'Charger':'Reprendre'}</button>${s.builtInDemo?'':`<button data-delete-session="${s.id}" class="danger">×</button>`}</div></article>`).join(''):'<div class="empty-mini">Aucune session sauvegardée.</div>';$$('[data-load-session]').forEach(b=>b.onclick=()=>loadSavedSession(b.dataset.loadSession));$$('[data-delete-session]').forEach(b=>b.onclick=()=>deleteSavedSession(b.dataset.deleteSession))}
 function saveCurrentSession(){const name=$('#sessionSaveName').value.trim()||state.title||'Session sans titre',list=getSavedSessions(),id=state.saveSlotId||uid('ss'),entry={id,name,updatedAt:nowStamp(),state:clone({...state,saveSlotId:id})};const idx=list.findIndex(x=>x.id===id);if(idx>=0)list[idx]=entry;else list.unshift(entry);state.saveSlotId=id;state.title=name;setSavedSessions(list);persist();renderSavedSessions();toast('Session sauvegardée')}
-function loadSavedSession(id){const entry=getSavedSessions().find(x=>x.id===id);if(!entry)return;snapshot();state=normalize(clone(entry.state));state.saveSlotId=id;persist();render();$('#sessionsDialog').close();toast(state.sessionStartedAt?'Partie reprise':'Préparation chargée')}
+function loadSavedSession(id){const entry=getSavedSessions().find(x=>x.id===id);if(!entry)return;snapshot();state=normalize(clone(entry.state));state.saveSlotId=entry.builtInDemo?null:id;persist();render();$('#sessionsDialog').close();toast(entry.builtInDemo?'Démo chargée — sauvegarde-la sous ton propre nom si tu veux la conserver':state.sessionStartedAt?'Partie reprise':'Préparation chargée')}
 function deleteSavedSession(id){if(!confirm('Supprimer cette session sauvegardée ?'))return;setSavedSessions(getSavedSessions().filter(x=>x.id!==id));if(state.saveSlotId===id)state.saveSlotId=null;persist();renderSavedSessions()}
 function launchSession(){const first=!state.sessionStartedAt;createBackup(first?'Début de session':'Reprise de session');commit(()=>{state.sessionStartedAt=state.sessionStartedAt||nowStamp();state.lastAutoBackupAt=Date.now();state.view='table';if(first)state.players.forEach(p=>p.spotlightCount=0)},first?'Session prête à jouer':'Session reprise');switchView('table')}
 
@@ -348,7 +368,7 @@ function runSearch(q){q=q.trim().toLowerCase();if(!q){$('#searchResults').innerH
 
 // Navigation and global controls
 $$('.nav-btn[data-view]').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$('#sessionTitle').onchange=e=>commit(()=>state.title=e.target.value.trim()||'Session sans titre',null);$('#btnUndo').onclick=()=>{const prev=history.pop();if(!prev)return toast('Rien à annuler');state=normalize(JSON.parse(prev));persist();render();toast('Modification annulée')};$('#btnMore').onclick=e=>{e.stopPropagation();$('#moreMenu').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('#moreMenu')&&!e.target.closest('#btnMore'))$('#moreMenu').classList.add('hidden')});$('#btnSearch').onclick=openSearch;$('#searchInput').oninput=e=>runSearch(e.target.value);$('#btnLaunchSession').onclick=launchSession;$('#btnSessions').onclick=openSessions;$('#btnBackups').onclick=openBackups;$('#btnQuickNote').onclick=openQuickNote;$('#btnPlayStrongStart').onclick=playStrongStart;$('#btnSaveSession').onclick=saveCurrentSession;
-$$('.context-tab').forEach(b=>b.onclick=()=>{state.contextTab=b.dataset.context;revealPendingId=null;persist();renderContextPanel()});$('#btnInject').onclick=()=>{renderInjection();$('#injectDialog').showModal()};
+$$('.context-tab').forEach(b=>b.onclick=()=>{state.contextTab=b.dataset.context;revealPendingId=null;persist();renderContextPanel()});
 
 // Prep controls
 $$('[data-edit="thread"]').forEach(b=>b.onclick=openThreadEditor);$$('[data-edit="strong"]').forEach(b=>b.onclick=openStrongEditor);$('#btnAddLocation').onclick=()=>openLocationEditor();$('#btnTableAddLocation').onclick=()=>openLocationEditor();$$('[data-add]').forEach(b=>b.onclick=()=>openGenericEditor(b.dataset.add));
@@ -363,11 +383,12 @@ $('#npcForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),dat
 $('#threadForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),goal=String(f.get('goal')||'').trim(),newLines=lines(f.get('steps'));commit(()=>{const old=state.thread.steps||[];state.thread.goal=goal;state.thread.steps=newLines.map((text,i)=>({id:old[i]?.id||uid('ts'),text,done:old[i]?.text===text?!!old[i].done:false}))},'Fil rouge enregistré');$('#threadDialog').close()};$('#strongForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);commit(()=>state.strongStart.text=String(f.get('text')||'').trim(),'Strong Start enregistré');$('#strongDialog').close()};
 $('#btnAddPlayerRow').onclick=()=>addPlayerRow();$('#playersForm').onsubmit=e=>{e.preventDefault();const arr=$$('#playersEditor .player-editor-row').map(row=>{const id=row.dataset.playerId||uid('p'),old=state.players.find(p=>p.id===id);return {id,name:row.querySelector('[data-pname]').value.trim(),spotlightIdeas:old?.spotlightIdeas||[],spotlightCount:old?.spotlightCount||0}}).filter(p=>p.name);commit(()=>state.players=arr,'Personnages enregistrés');$('#playersDialog').close()};$('#spotlightForm').onsubmit=e=>{e.preventDefault();const p=state.players.find(x=>x.id===spotlightEditingId);if(!p)return;const ideas=$$('#spotlightIdeaRows [data-spotlight-idea]').map(x=>x.value.trim()).filter(Boolean);commit(()=>p.spotlightIdeas=ideas,'Spotlight mis à jour');$('#spotlightDialog').close()};$('#btnAddSpotlightIdea').onclick=()=>addSpotlightIdeaRow('');
 $('#genericForm').onsubmit=e=>{e.preventDefault();const def=genericDefs[genericContext.type];if(!def)return;const f=new FormData(e.target),data={};def.fields.forEach(field=>data[field.name]=String(f.get(field.name)||'').trim());commit(()=>{const arr=state[def.collection];if(genericContext.id){const item=arr.find(x=>x.id===genericContext.id);Object.assign(item,data);if(genericContext.type==='blank')item.resolved=!!data.resolution}else{const base={id:uid(genericContext.type.slice(0,2))};if(genericContext.type==='reward')base.used=false;if(['threat','situation'].includes(genericContext.type))Object.assign(base,{used:false,injected:false,activeInjected:false,injectedLocationId:null});if(genericContext.type==='secret')Object.assign(base,{revealed:false,revealedAt:null,method:''});if(genericContext.type==='blank')Object.assign(base,{resolved:!!data.resolution});arr.push({...base,...data})}},'Élément enregistré');$('#genericDialog').close()};$('#btnDeleteGeneric').onclick=()=>{const def=genericDefs[genericContext.type];if(!def||!genericContext.id||!confirm('Supprimer cet élément ?'))return;commit(()=>state[def.collection]=state[def.collection].filter(x=>x.id!==genericContext.id),'Élément supprimé');$('#genericDialog').close()};
-$('#quickNoteForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),text=String(f.get('text')||'').trim(),type=f.get('type');if(!text)return;commit(()=>state.journal.unshift({id:uid('j'),type,text,locationId:state.activeLocationId,createdAt:nowStamp()}),'Note ajoutée');$('#quickNoteDialog').close()};
+$('#quickNoteForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),text=String(f.get('text')||'').trim(),type=f.get('type');if(!text)return;commit(()=>state.journal.unshift({id:uid('j'),type,text,locationId:state.activeLocationId,createdAt:nowStamp()}),'Note ajoutée');e.target.reset();renderQuickNoteHistory();setTimeout(()=>e.target.elements.text.focus(),30)};
 
 $$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;persist();renderLibrary()});$('#btnClearJournal').onclick=()=>{if(confirm('Effacer le journal ?'))commit(()=>state.journal=[],'Journal effacé')};$('#btnQuickAdd').onclick=()=>$('#quickAddDialog').showModal();$$('[data-quick-create]').forEach(b=>b.onclick=()=>{const type=b.dataset.quickCreate;$('#quickAddDialog').close();if(type==='location')openLocationEditor();else if(type==='npc')openNpcEditor();else if(type==='note')openQuickNote();else openGenericEditor(type)});
 function download(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},0)}
-$('#btnExport').onclick=()=>download(`dm-cockpit-v04-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2));$('#btnImport').onclick=()=>$('#importFile').click();$('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{snapshot();state=normalize(JSON.parse(await file.text()));persist();render();toast('Préparation importée')}catch(err){console.error(err);toast('JSON incompatible')}e.target.value=''};$('#btnResetDemo').onclick=()=>{if(confirm('Restaurer la démonstration ?')){snapshot();state=normalize(clone(DEMO));persist();render();toast('Démo restaurée')}};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
+$('#btnExport').onclick=()=>download(`dm-cockpit-v05-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2));$('#btnImport').onclick=()=>$('#importFile').click();$('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{snapshot();state=normalize(JSON.parse(await file.text()));persist();render();toast('Préparation importée')}catch(err){console.error(err);toast('JSON incompatible')}e.target.value=''};$('#btnResetDemo').onclick=()=>{if(confirm('Restaurer la démonstration ?')){snapshot();state=normalize(clone(DEMO));persist();render();toast('Démo restaurée')}};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
 
+ensureDemoSavedSession();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
 render();
