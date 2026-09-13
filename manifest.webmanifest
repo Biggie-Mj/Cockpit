@@ -1,6 +1,6 @@
 {
   "id": "./",
-  "name": "Cockpit V1.4 — Préparation D&D 5e",
+  "name": "Cockpit V1.6 — Préparation D&D 5e",
   "short_name": "Cockpit",
   "description": "Console hors ligne de préparation et de suivi de session D&D 5e pour iPad.",
   "start_url": "./",
@@ -10,7 +10,17 @@
   "theme_color": "#0b2f21",
   "orientation": "landscape",
   "icons": [
-    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

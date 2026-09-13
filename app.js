@@ -1,4 +1,4 @@
-const APP_VERSION='1.5';
+const APP_VERSION='1.6';
 const STORAGE_KEY='cockpit-v1';
 const LEGACY_KEYS=['dm-cockpit-v05','dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
 const BACKUP_KEY='cockpit-v1-backups';
@@ -16,7 +16,7 @@ const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'1.5',
+  version:'1.6',
   title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
   activeLocationId:'l1',
@@ -108,7 +108,7 @@ const DEMO={
   ]
 };
 
-const EMPTY=()=>({version:'1.5',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
+const EMPTY=()=>({version:'1.6',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
 
 let state=load();
 let history=[];
@@ -121,6 +121,7 @@ let spotlightEditingId=null;
 let spotlightFlashId=null;
 let recentlyRevealedSecretId=null;
 let homeOpen=true;
+let pendingImportedSession=null;
 
 function normalize(s){
   const base=EMPTY(), out={...base,...s};
@@ -435,8 +436,10 @@ function userSavedSessions(){return getSavedSessions().filter(x=>!x.builtInDemo)
 function openSessions(){$('#moreMenu').classList.add('hidden');$('#sessionSaveName').value=state.title||'';$('#saveChoicePanel').classList.add('hidden');renderSavedSessions();$('#sessionsDialog').showModal()}
 function renderSavedSessions(){
   const list=getSavedSessions(),users=list.filter(x=>!x.builtInDemo),count=$('#sessionSlotCount');if(count)count.textContent=`${users.length} / ${MAX_SAVED_SESSIONS} sauvegardes`;
-  $('#savedSessionsList').innerHTML=list.length?list.map(s=>`<article class="saved-session-row ${state.saveSlotId===s.id?'current-slot':''}"><div><span class="session-state ${s.builtInDemo?'demo':s.state?.sessionStartedAt?'running':'prepared'}">${s.builtInDemo?'DÉMO ROYAUMES OUBLIÉS':s.state?.sessionStartedAt?'PARTIE EN COURS':'PRÉPARÉE'}</span><strong>${esc(s.name)}</strong><small>${s.builtInDemo?'Modèle standard prêt à tester':`${state.saveSlotId===s.id?'EMPLACEMENT ACTUEL · ':''}Mis à jour ${new Date(s.updatedAt).toLocaleString('fr-FR')}`}</small></div><div class="saved-session-actions"><button data-load-session="${s.id}" class="primary">${s.builtInDemo?'Charger':'Reprendre'}</button>${s.builtInDemo?'':`<button data-delete-session="${s.id}" class="danger" title="Supprimer">×</button>`}</div></article>`).join(''):'<div class="empty-mini">Aucune session sauvegardée.</div>';
-  $$('[data-load-session]').forEach(b=>b.onclick=()=>loadSavedSession(b.dataset.loadSession));$$('[data-delete-session]').forEach(b=>b.onclick=()=>deleteSavedSession(b.dataset.deleteSession));
+  $('#savedSessionsList').innerHTML=list.length?list.map(s=>`<article class="saved-session-row ${state.saveSlotId===s.id?'current-slot':''}"><div><span class="session-state ${s.builtInDemo?'demo':s.state?.sessionStartedAt?'running':'prepared'}">${s.builtInDemo?'DÉMO ROYAUMES OUBLIÉS':s.state?.sessionStartedAt?'PARTIE EN COURS':'PRÉPARÉE'}</span><strong>${esc(s.name)}</strong><small>${s.builtInDemo?'Modèle standard prêt à tester':`${state.saveSlotId===s.id?'EMPLACEMENT ACTUEL · ':''}Mis à jour ${new Date(s.updatedAt).toLocaleString('fr-FR')}`}</small></div><div class="saved-session-actions"><button data-load-session="${s.id}" class="primary">${s.builtInDemo?'Charger':'Reprendre'}</button>${s.builtInDemo?'':`<button data-export-saved-session="${s.id}" class="violet">Exporter</button><button data-delete-session="${s.id}" class="danger" title="Supprimer">×</button>`}</div></article>`).join(''):'<div class="empty-mini">Aucune session sauvegardée.</div>';
+  $$('[data-load-session]').forEach(b=>b.onclick=()=>loadSavedSession(b.dataset.loadSession));
+  $$('[data-export-saved-session]').forEach(b=>b.onclick=()=>exportSavedSessionSlot(b.dataset.exportSavedSession));
+  $$('[data-delete-session]').forEach(b=>b.onclick=()=>deleteSavedSession(b.dataset.deleteSession));
 }
 function openSaveChoices(){
   const panel=$('#saveChoicePanel'),users=userSavedSessions(),current=users.find(x=>x.id===state.saveSlotId),canCreate=users.length<MAX_SAVED_SESSIONS;
@@ -479,16 +482,72 @@ function archiveCurrentForSafety(){
 }
 function createNewSession(name){archiveCurrentForSafety();snapshot();state=normalize(EMPTY());state.title=(name||'').trim()||'Nouvelle session';state.view='prep';persist();closeHome();render();toast('Nouvelle session créée')}
 function safeFileName(value){return String(value||'session').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9-_]+/g,'-').replace(/^-+|-+$/g,'').slice(0,70)||'session'}
-function buildExportPayload(){return {format:'cockpit-session',formatVersion:1,appVersion:APP_VERSION,exportedAt:nowStamp(),session:clone({...state,version:APP_VERSION})}}
+function buildExportPayload(sessionState=state){
+  return {format:'cockpit-session',formatVersion:1,appVersion:APP_VERSION,exportedAt:nowStamp(),session:clone({...sessionState,version:APP_VERSION})};
+}
 function downloadBlob(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 async function exportSession(){
-  const payload=JSON.stringify(buildExportPayload(),null,2),name=`Cockpit-${safeFileName(state.title)}-${new Date().toISOString().slice(0,10)}.cockpit`,file=new File([payload],name,{type:'application/json'});
+  const payload=JSON.stringify(buildExportPayload(),null,2),name=`Cockpit-${safeFileName(state.title)}-${new Date().toISOString().slice(0,10)}.json`,file=new File([payload],name,{type:'application/json'});
   try{if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:`Sauvegarde Cockpit · ${state.title}`,files:[file]});toast('Sauvegarde prête à enregistrer dans Fichiers');return}}catch(err){if(err?.name==='AbortError')return;console.warn(err)}
   downloadBlob(name,file);toast('Sauvegarde exportée');
 }
-async function importSessionFile(file){
-  const parsed=JSON.parse(await file.text());const incoming=parsed?.format==='cockpit-session'&&parsed?.session?parsed.session:parsed;
+function savedSlotExportPayload(slot){
+  const exportedState=normalize(clone(slot.state||EMPTY()));
+  exportedState.saveSlotId=null;
+  exportedState.title=slot.name||exportedState.title||'Session sauvegardée';
+  return buildExportPayload(exportedState);
+}
+async function exportSavedSessionSlot(id){
+  const slot=getSavedSessions().find(x=>x.id===id&&!x.builtInDemo);if(!slot)return toast('Sauvegarde introuvable');
+  const payload=JSON.stringify(savedSlotExportPayload(slot),null,2),date=new Date().toISOString().slice(0,10),name=`Cockpit-Sauvegarde-${safeFileName(slot.name)}-${date}.json`,file=new File([payload],name,{type:'application/json'});
+  try{if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:`Exporter · ${slot.name}`,files:[file]});toast('Copie externe prête à enregistrer dans Fichiers');return}}catch(err){if(err?.name==='AbortError')return;console.warn(err)}
+  downloadBlob(name,file);toast('Sauvegarde exportée');
+}
+function extractImportedSession(parsed){
+  const incoming=parsed?.format==='cockpit-session'&&parsed?.session?parsed.session:parsed?.session&&typeof parsed.session==='object'?parsed.session:parsed;
   if(!incoming||typeof incoming!=='object'||Array.isArray(incoming))throw new Error('Format invalide');
+  const normalized=normalize(clone(incoming));
+  normalized.saveSlotId=null;
+  return normalized;
+}
+function importedSessionName(session,fileName=''){
+  const fromState=String(session?.title||'').trim();
+  if(fromState)return fromState;
+  return String(fileName||'Session importée').replace(/\.(json|cockpit)$/i,'').replace(/^Cockpit-(Sauvegarde-)?/i,'').replace(/[-_]+/g,' ').trim()||'Session importée';
+}
+function storeImportedSavedSession(session,name,targetId=null){
+  const list=getSavedSessions(),users=list.filter(x=>!x.builtInDemo);
+  if(!targetId&&users.length>=MAX_SAVED_SESSIONS)return false;
+  const id=targetId||uid('ss'),cleanName=String(name||session.title||'Session importée').trim()||'Session importée';
+  const prepared=normalize(clone(session));prepared.saveSlotId=id;prepared.title=cleanName;prepared.version=APP_VERSION;
+  const entry={id,name:cleanName,updatedAt:nowStamp(),state:clone(prepared)},idx=list.findIndex(x=>x.id===id);
+  if(idx>=0)list[idx]=entry;else list.push(entry);
+  setSavedSessions(list);
+  pendingImportedSession=null;
+  $('#saveChoicePanel')?.classList.add('hidden');
+  renderSavedSessions();
+  toast(idx>=0?'Sauvegarde importée et emplacement remplacé':'Sauvegarde importée');
+  return true;
+}
+function showImportOverwriteChoices(session,name){
+  pendingImportedSession={session:clone(session),name};
+  const users=userSavedSessions(),panel=$('#saveChoicePanel');
+  panel.innerHTML=`<div class="save-choice-head"><div><span class="eyebrow">IMPORT · 15/15</span><strong>Choisir une sauvegarde à remplacer</strong></div><span>${users.length}/${MAX_SAVED_SESSIONS}</span></div><div class="save-overwrite-title">L’import est valide, mais les 15 emplacements sont utilisés.</div><div class="save-overwrite-list">${users.map(x=>`<button data-import-overwrite-slot="${x.id}"><strong>${esc(x.name)}</strong><small>${new Date(x.updatedAt).toLocaleString('fr-FR')}</small></button>`).join('')}</div>`;
+  panel.classList.remove('hidden');
+  $$('[data-import-overwrite-slot]').forEach(b=>b.onclick=()=>{const target=users.find(x=>x.id===b.dataset.importOverwriteSlot);if(target&&pendingImportedSession&&confirm(`Remplacer « ${target.name} » par « ${pendingImportedSession.name} » ?`))storeImportedSavedSession(pendingImportedSession.session,pendingImportedSession.name,target.id)});
+}
+function importSavedSessionPayload(parsed,fileName=''){
+  const incoming=extractImportedSession(parsed),name=importedSessionName(incoming,fileName);
+  if(userSavedSessions().length>=MAX_SAVED_SESSIONS){showImportOverwriteChoices(incoming,name);return {status:'needs-overwrite',name}}
+  storeImportedSavedSession(incoming,name);
+  return {status:'imported',name};
+}
+async function importSavedSessionFile(file){
+  const parsed=JSON.parse(await file.text());
+  return importSavedSessionPayload(parsed,file.name||'');
+}
+async function importSessionFile(file){
+  const parsed=JSON.parse(await file.text()),incoming=extractImportedSession(parsed);
   archiveCurrentForSafety();snapshot();state=normalize(clone(incoming));state.saveSlotId=null;persist();closeHome();render();toast('Sauvegarde importée');
 }
 
@@ -530,8 +589,8 @@ $('#quickNoteForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.targe
 $$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;persist();renderLibrary()});$('#btnClearJournal').onclick=()=>{if(confirm('Effacer le journal ?'))commit(()=>state.journal=[],'Journal effacé')};$('#btnExportJournal').onclick=exportJournal;$('#btnImportNpcFromEditor').onclick=()=>openComponentImport('npc');$('#btnImportLocationFromEditor').onclick=()=>openComponentImport('location');
 $('#npcImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importNpcFile(file)}catch(err){console.error(err);toast('Fichier PNJ incompatible')}e.target.value=''};
 $('#locationImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importLocationFile(file)}catch(err){console.error(err);toast('Fichier lieu incompatible')}e.target.value=''};
-$('#btnExport').onclick=exportSession;$('#btnImport').onclick=()=>$('#importFile').click();$('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnResetDemo').onclick=()=>{if(confirm('Restaurer la démonstration ?')){snapshot();state=normalize(clone(DEMO));persist();render();toast('Démo restaurée')}};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
+$('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnImportSavedSession').onclick=()=>$('#savedSessionImportFile').click();$('#savedSessionImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSavedSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.5.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.6.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();
