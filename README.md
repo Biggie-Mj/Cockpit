@@ -16,3 +16,12 @@ Après mise en ligne :
 3. Si l’icône iOS reste l’ancienne, supprimer le raccourci de l’écran d’accueil puis refaire « Ajouter à l’écran d’accueil » : iOS met l’icône en cache séparément.
 
 Les données de session restent dans le stockage local du navigateur, indépendamment de ces fichiers statiques.
+
+
+## V1.2 — correctif iPadOS standalone
+- correction de la bande blanche inférieure observée dans la web app iPadOS ;
+- utilisation de `100vh` uniquement en mode `display-mode: standalone` afin de contourner un bug WebKit des hauteurs dynamiques avec `viewport-fit=cover` ;
+- fond racine forcé en sombre pour empêcher le canvas WebKit de peindre du blanc autour de la zone sûre ;
+- barre de navigation dimensionnée avec `safe-area-inset-bottom` ;
+- `black-translucent` remplacé par `black` pour éviter les anomalies de viewport signalées en mode web app ;
+- cache PWA versionné `cockpit-v1-2-ipados-safe`.

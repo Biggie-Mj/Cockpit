@@ -1,9 +1,9 @@
-const CACHE='cockpit-v1-1-root-assets';
+const CACHE='cockpit-v1-2-ipados-safe';
 const SHELL=[
-  './','./index.html','./styles.css?v=1.1.0','./app.js?v=1.1.0','./manifest.webmanifest?v=1.1.0'
+  './','./index.html','./styles.css?v=1.2.0','./app.js?v=1.2.0','./manifest.webmanifest?v=1.2.0'
 ];
 const MEDIA=[
-  './menu-background-v1.jpg?v=1.1.0','./icon-512.png','./icon-192.png','./icon-64.png','./apple-touch-icon.png','./favicon-32.png'
+  './menu-background-v1.jpg?v=1.2.0','./icon-512.png','./icon-192.png','./icon-64.png','./apple-touch-icon.png','./favicon-32.png'
 ];
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
