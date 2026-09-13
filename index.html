@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DM COCKPIT">
-  <title>DM COCKPIT V0.3 — Sly Flourish</title>
+  <title>DM COCKPIT V0.4 — Sly Flourish</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -16,7 +16,7 @@
   <div id="sheetScrim" class="sheet-scrim hidden"></div>
 
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">✦</div><div><h1>DM COCKPIT</h1><p>SLY FLOURISH · V0.3</p></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1>DM COCKPIT</h1><p>SLY FLOURISH · V0.4</p></div></div>
     <div class="session-title-wrap"><span class="eyebrow">SESSION</span><input id="sessionTitle" class="session-title" aria-label="Titre de la session"></div>
     <div class="top-actions">
       <button id="btnSearch" class="ghost icon-only" title="Rechercher">⌕</button>
@@ -25,7 +25,8 @@
       <button id="btnMore" class="ghost icon-only" title="Outils">•••</button>
     </div>
     <div id="moreMenu" class="more-menu hidden">
-      <button id="btnBackups">Backups</button>
+      <button id="btnSessions">Sessions sauvegardées</button>
+      <button id="btnBackups">Backups de sécurité</button>
       <button id="btnExport">Exporter JSON</button>
       <button id="btnImport">Importer JSON</button>
       <button id="btnResetDemo">Restaurer la démo</button>
@@ -111,13 +112,33 @@
   <dialog id="strongDialog" class="modal"><form id="strongForm"><div class="modal-head"><div><span class="eyebrow">STRONG START</span><h2>Démarrer en mouvement</h2></div><button type="button" class="icon-btn" data-close="strongDialog">×</button></div><label class="solo-label">Situation initiale<textarea name="text" rows="8"></textarea></label><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="strongDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
   <dialog id="playersDialog" class="modal"><form id="playersForm"><div class="modal-head"><div><span class="eyebrow">PERSONNAGES</span><h2>Spotlights</h2></div><button type="button" class="icon-btn" data-close="playersDialog">×</button></div><div id="playersEditor" class="players-editor"></div><button type="button" id="btnAddPlayerRow" class="ghost dialog-inline-add">＋ Ajouter un personnage</button><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="playersDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
   <dialog id="genericDialog" class="modal"><form id="genericForm"><div class="modal-head"><div><span id="genericEyebrow" class="eyebrow">COMPOSANT</span><h2 id="genericDialogTitle">Élément</h2></div><button type="button" class="icon-btn" data-close="genericDialog">×</button></div><div id="genericFields" class="form-grid"></div><div class="modal-actions"><button type="button" id="btnDeleteGeneric" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="genericDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
-  <dialog id="manageNpcsDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">LIEU ACTUEL</span><h2>Qui est ici ?</h2></div><button type="button" class="icon-btn" data-close="manageNpcsDialog">×</button></div><div id="manageNpcChecks" class="check-grid roomy"></div><div class="modal-actions"><span></span><span></span><button class="primary" data-close="manageNpcsDialog">Terminé</button></div></dialog>
+
+  <dialog id="spotlightDialog" class="modal compact-modal"><form id="spotlightForm">
+    <div class="modal-head"><div><span class="eyebrow">SPOTLIGHT PJ</span><h2 id="spotlightDialogTitle">Personnage</h2><p id="spotlightDialogCount" class="dialog-hint"></p></div><button type="button" class="icon-btn" data-close="spotlightDialog">×</button></div>
+    <div id="spotlightIdeaRows" class="spotlight-idea-rows"></div>
+    <button type="button" id="btnAddSpotlightIdea" class="ghost dialog-inline-add">＋ Ajouter une idée pour le faire briller</button>
+    <div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="spotlightDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
+  </form></dialog>
+
+  <dialog id="strongStartPlayDialog" class="modal strong-play-modal">
+    <div class="modal-head"><div><span class="eyebrow">STRONG START</span><h2>Démarrer en mouvement</h2></div><button type="button" class="icon-btn" data-close="strongStartPlayDialog">×</button></div>
+    <div id="strongStartPlayText" class="strong-play-text"></div>
+    <div class="strong-play-actions"><button id="btnPlayStrongStart" class="launch-btn">✓ Joué</button></div>
+  </dialog>
+
+  <dialog id="sessionsDialog" class="modal wide-modal">
+    <div class="modal-head"><div><span class="eyebrow">SESSIONS</span><h2>Préparations et parties sauvegardées</h2><p class="dialog-hint">Une session « en cours » conserve exactement son état pour être reprise plus tard.</p></div><button type="button" class="icon-btn" data-close="sessionsDialog">×</button></div>
+    <div class="session-save-bar"><input id="sessionSaveName" placeholder="Nom de la session"><button id="btnSaveSession" class="primary">💾 Sauvegarder l’état actuel</button></div>
+    <div id="savedSessionsList" class="saved-session-list"></div>
+  </dialog>
 
   <dialog id="quickNoteDialog" class="modal compact-modal"><form id="quickNoteForm"><div class="modal-head"><div><span class="eyebrow">À LA VOLÉE</span><h2>Note rapide</h2></div><button type="button" class="icon-btn" data-close="quickNoteDialog">×</button></div><div class="quick-note-form"><textarea name="text" rows="4" placeholder="Ce qui devient vrai à la table…"></textarea><select name="type"><option value="note">📝 Note</option><option value="decision">⚑ Décision</option><option value="quote">💬 Citation</option><option value="question">❓ Question</option><option value="death">💀 Mort</option><option value="loot">🎁 Butin</option><option value="lead">🔗 Piste</option></select></div><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="quickNoteDialog">Annuler</button><button type="submit" class="primary">Ajouter</button></div></form></dialog>
   <dialog id="injectDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">MUNITIONS</span><h2>Injecter dans la partie</h2></div><button type="button" class="icon-btn" data-close="injectDialog">×</button></div><div id="injectContent" class="inject-content"></div></dialog>
   <dialog id="backupsDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">SÉCURITÉ</span><h2>Backups locaux</h2></div><button type="button" class="icon-btn" data-close="backupsDialog">×</button></div><div id="backupList" class="backup-list"></div></dialog>
   <dialog id="searchDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">RECHERCHE</span><h2>Retrouver rapidement</h2></div><button type="button" class="icon-btn" data-close="searchDialog">×</button></div><div class="search-box"><input id="searchInput" type="search" placeholder="Lieu, PNJ, secret, note…"><div id="searchResults" class="search-results"></div></div></dialog>
   <dialog id="quickAddDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">AJOUTER</span><h2>Créer un composant</h2></div><button type="button" class="icon-btn" data-close="quickAddDialog">×</button></div><div class="quick-add-grid"><button data-quick-create="location">◈<strong>Lieu</strong></button><button data-quick-create="npc">♟<strong>PNJ</strong></button><button data-quick-create="secret">◆<strong>Secret</strong></button><button data-quick-create="threat">⚠<strong>Menace</strong></button><button data-quick-create="situation">✦<strong>Munition</strong></button><button data-quick-create="reward">🎁<strong>Récompense</strong></button><button data-quick-create="blank">?<strong>Blanc</strong></button><button data-quick-create="note">📝<strong>Note</strong></button></div></dialog>
+
+  <div id="sessionStartFx" class="session-start-fx" aria-hidden="true"><div class="fx-ring"></div><div class="fx-ring second"></div><strong>LA SESSION COMMENCE</strong><span>Que faites-vous ?</span></div>
 
   <input id="importFile" type="file" accept="application/json,.json" hidden>
   <script src="app.js"></script>

@@ -1,41 +1,33 @@
-# DM COCKPIT V0.3 — Sly Flourish
+# DM COCKPIT V0.4 — Sly Flourish
 
-Console MJ D&D 5e optimisée pour **iPad paysage**, basée sur la préparation par composants et lieux vivants.
+Version corrective et ergonomique pour iPad paysage. Elle conserve la préparation par composants de la V0.3 et ajoute les retours de table demandés.
 
-## Ce que change la V0.3
+## V0.4
 
-- Navigation unique en bas : plus de double bascule Préparation/Table.
-- Bandeau PJ compact et dépliable avec un spotlight par personnage.
-- Préparation ramenée à un véritable tableau de bord mono-écran : Fil rouge, Strong Start, lieux, munitions, secrets et compteurs de composants.
-- Éditeur de lieu progressif : un lieu de réserve ne demande que nom, concept et situation ; les champs avancés sont réservés aux lieux principaux.
-- Mode Table en trois zones : lieux/munitions, lieu consulté, panneau contextuel.
-- **Aperçu ≠ lieu actuel** : toucher un lieu le consulte sans modifier la fiction ; `Rendre actuel` effectue explicitement le déplacement.
-- Panneau droit à onglets : PNJ, Secrets, Menaces, Épinglés. Une seule famille secondaire développée à la fois.
-- Fiche PNJ en volet latéral plutôt qu'en alerte navigateur.
-- Secret révélé en deux gestes : `Révéler`, puis mode de découverte (conversation, observation, document, magie, déduction, autre).
-- Bouton `⚡ Injecter` regroupant munitions et menaces disponibles.
-- Note rapide accessible depuis toutes les vues.
-- `Lancer la session` crée un backup, remet les spotlights à zéro et ouvre la Table.
-- Backups locaux tournants : début de session + backup automatique toutes les 30 minutes après le lancement.
-- Indicateur de sauvegarde en haut de l'écran.
-- Recherche globale sur lieux, PNJ, secrets et journal.
-- Zoom navigateur à nouveau autorisé.
-- Aucune horloge.
+- cadres de lieux, munitions et cartes à hauteur dynamique ; texte long toujours renvoyé à la ligne ;
+- secrets révélés conservés dans le tiroir, code vert, symbole de méthode et surbrillance verte pendant 4 secondes ;
+- sélecteur de méthode de révélation corrigé et toujours cliquable ;
+- spotlights remplacés par un compteur 🌟 : clic sur l’étoile = +1, flash jaune 3 s, tri décroissant automatique ;
+- leader(s) en bleu ; retard de 2–4 sur le joueur précédent en orange, 5+ en rouge ;
+- clic sur le cartouche PJ = popup d’idées de spotlight modifiables, ajoutables et supprimables ;
+- gestionnaire local de sessions via `•••` : sauvegarde d’une préparation ou d’une partie en cours et reprise ultérieure ;
+- Strong Start en popup central avec bouton `Joué`, FX de début de session, puis disparition du menu de gauche ;
+- injection persistante des munitions : situations violettes et menaces rouges dans le lieu actuel, surbrillance activable/désactivable ;
+- menu Injecter conserve les munitions déjà injectées en vert, assombries et cochées ;
+- onglet PNJ : tous les PNJ sont toujours visibles, avec `+ Ici / ✓ Ici` et bouton `Créer` ;
+- PNJ présents affichés directement sous le concept du lieu avec initiales cliquables ;
+- créer un PNJ à la volée réutilise le formulaire PNJ existant ;
+- un PNJ reste dans la bibliothèque globale même s’il est affecté à un ou plusieurs lieux.
 
-## Données
+## Sauvegardes
 
-La V0.3 utilise `localStorage` avec la clé `dm-cockpit-v03`. Si cette clé n'existe pas mais que `dm-cockpit-v02` existe sur la même adresse et dans le même navigateur, les données V0.2 sont reprises automatiquement.
-
-Les backups sont stockés séparément dans `dm-cockpit-v03-backups` et limités aux cinq plus récents.
+- état courant : `dm-cockpit-v04` ;
+- sessions nommées : `dm-cockpit-v04-sessions` ;
+- backups tournants : `dm-cockpit-v04-backups` ;
+- migration automatique depuis V0.3 puis V0.2.
 
 ## Installation
 
-Déposer ces fichiers dans :
-
-`Table-new-test/dm-cockpit/`
-
-Puis ouvrir :
+Déposer ce dossier dans `Table-new-test/dm-cockpit/`. GitHub Pages :
 
 `https://biggie-mj.github.io/Table-new-test/dm-cockpit/`
-
-Après une mise à jour, recharger une fois la page puis fermer/réouvrir l'ancienne PWA si Safari conserve l'ancien cache.
