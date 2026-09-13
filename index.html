@@ -3,20 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b0908">
+  <meta name="theme-color" content="#0b2f21">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DM COCKPIT">
-  <title>DM COCKPIT V0.5 — Sly Flourish</title>
+  <meta name="apple-mobile-web-app-title" content="Cockpit">
+  <title>Cockpit V1 — Préparation D&D 5e</title>
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+  <main id="homeView" class="home-screen">
+    <div class="home-shade"></div>
+    <section class="home-panel" aria-label="Menu principal Cockpit">
+      <div class="home-brand-row"><img src="icons/icon-192.png" alt=""><div><span class="eyebrow">COCKPIT · V1</span><h1>Préparez. Pilotez. Improvisez.</h1></div></div>
+      <p class="home-copy">Votre console de préparation et de suivi de session D&amp;D 5e, pensée pour l’iPad.</p>
+      <div class="home-actions">
+        <button id="btnHomeResume" class="home-primary"><span>Reprendre la dernière session</span><small id="homeResumeTitle">Aucune session en cours</small></button>
+        <button id="btnHomeNew" class="home-secondary"><span class="home-action-icon">＋</span><span><strong>Créer une nouvelle session</strong><small>Commencer une préparation vierge</small></span></button>
+        <button id="btnHomeImport" class="home-secondary"><span class="home-action-icon">⇩</span><span><strong>Importer une sauvegarde</strong><small>Ouvrir un fichier Cockpit depuis Fichiers</small></span></button>
+      </div>
+      <div class="home-foot"><span>Disponible hors ligne une fois installée.</span><button id="btnHomeSessions" class="home-link">Sessions sauvegardées</button></div>
+    </section>
+  </main>
+
   <div id="toast" class="toast" aria-live="polite"></div>
   <div id="sheetScrim" class="sheet-scrim hidden"></div>
 
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">✦</div><div><h1>DM COCKPIT</h1><p>SLY FLOURISH · V0.5</p></div></div>
+    <div id="btnHome" class="brand" role="button" tabindex="0" title="Menu principal"><div class="brand-mark"><img src="icons/icon-64.png" alt=""></div><div><h1>COCKPIT</h1><p>SLY FLOURISH · V1</p></div></div>
     <div class="session-title-wrap"><span class="eyebrow">SESSION</span><input id="sessionTitle" class="session-title" aria-label="Titre de la session"></div>
     <div class="top-actions">
       <button id="btnSearch" class="ghost icon-only" title="Rechercher">⌕</button>
@@ -27,8 +44,8 @@
     <div id="moreMenu" class="more-menu hidden">
       <button id="btnSessions">Sessions sauvegardées</button>
       <button id="btnBackups">Backups de sécurité</button>
-      <button id="btnExport">Exporter JSON</button>
-      <button id="btnImport">Importer JSON</button>
+      <button id="btnExport">Exporter la session</button>
+      <button id="btnImport">Importer une sauvegarde</button>
       <button id="btnResetDemo">Restaurer la démo</button>
       <button id="btnClear" class="danger">Nouvelle préparation vide</button>
     </div>
@@ -48,7 +65,7 @@
       </div>
       <article class="prep-card locations-card"><header class="card-head"><div><span class="eyebrow">ESPACE DE JEU</span><h2>Lieux vivants</h2></div><button id="btnAddLocation" class="primary">＋ Lieu</button></header><div id="prepLocations" class="location-board"></div></article>
       <div class="prep-stack">
-        <article class="prep-card"><header class="card-head"><div><span class="eyebrow">SI LE RYTHME TOMBE</span><h2>Munitions</h2></div><button class="primary" data-add="situation">＋</button></header><div id="situationsCard" class="ammo-list"></div></article>
+        <article class="prep-card"><header class="card-head"><div><span class="eyebrow">SI LE RYTHME TOMBE</span><h2>Situations</h2></div><button class="primary" data-add="situation">＋</button></header><div id="situationsCard" class="ammo-list"></div></article>
         <article class="prep-card"><header class="card-head"><div><span class="eyebrow">RESSOURCES</span><h2>Composants</h2></div></header><div id="prepResources" class="resource-summary-grid"></div></article>
       </div>
       <article class="prep-card secrets-card-v3"><header class="card-head"><div><span class="eyebrow">FILET DE SÉCURITÉ</span><h2>Secrets & indices <span id="prepSecretCount" class="muted-count"></span></h2></div><button class="primary" data-add="secret">＋ Secret</button></header><div id="prepSecrets" class="prep-secret-grid"></div></article>
@@ -80,7 +97,7 @@
     </aside>
   </main>
 
-  <main id="libraryView" class="view-shell library-shell hidden"><section class="library-panel panel"><div class="library-tabs"><button class="library-tab active" data-library="secrets">Secrets</button><button class="library-tab" data-library="npcs">PNJ</button><button class="library-tab" data-library="threats">Menaces</button><button class="library-tab" data-library="rewards">Récompenses</button><button class="library-tab" data-library="blanks">Blancs</button></div><div id="libraryContent" class="library-content"></div></section></main>
+  <main id="libraryView" class="view-shell library-shell hidden"><section class="library-panel panel"><div class="library-tabs"><button class="library-tab active" data-library="secrets">Secrets</button><button class="library-tab" data-library="npcs">PNJ</button><button class="library-tab" data-library="threats">Menaces</button><button class="library-tab" data-library="situations">Situations</button><button class="library-tab" data-library="rewards">Récompenses</button><button class="library-tab" data-library="blanks">Blancs</button></div><div id="libraryContent" class="library-content"></div></section></main>
   <main id="journalView" class="view-shell journal-shell hidden"><section class="journal-panel panel"><div class="panel-head"><div><span class="eyebrow">CE QUI EST DEVENU VRAI</span><h2>Journal de session</h2></div><button id="btnClearJournal" class="ghost">Effacer</button></div><div id="journalContent" class="journal-content"></div></section></main>
 
   <nav class="bottom-nav" aria-label="Navigation principale">
@@ -138,11 +155,14 @@
   <dialog id="injectDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">RYTHME</span><h2>Injecter dans la partie</h2></div><button type="button" class="icon-btn" data-close="injectDialog">×</button></div><div id="injectContent" class="inject-content"></div></dialog>
   <dialog id="backupsDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">SÉCURITÉ</span><h2>Backups locaux</h2></div><button type="button" class="icon-btn" data-close="backupsDialog">×</button></div><div id="backupList" class="backup-list"></div></dialog>
   <dialog id="searchDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">RECHERCHE</span><h2>Retrouver rapidement</h2></div><button type="button" class="icon-btn" data-close="searchDialog">×</button></div><div class="search-box"><input id="searchInput" type="search" placeholder="Lieu, PNJ, secret, note…"><div id="searchResults" class="search-results"></div></div></dialog>
-  <dialog id="quickAddDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">AJOUTER</span><h2>Créer un composant</h2></div><button type="button" class="icon-btn" data-close="quickAddDialog">×</button></div><div class="quick-add-grid"><button data-quick-create="location">◈<strong>Lieu</strong></button><button data-quick-create="npc">♟<strong>PNJ</strong></button><button data-quick-create="secret">◆<strong>Secret</strong></button><button data-quick-create="threat">⚠<strong>Menace</strong></button><button data-quick-create="situation">✦<strong>Munition</strong></button><button data-quick-create="reward">🎁<strong>Récompense</strong></button><button data-quick-create="blank">?<strong>Blanc</strong></button><button data-quick-create="note">📝<strong>Note</strong></button></div></dialog>
+  <dialog id="quickAddDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">AJOUTER</span><h2>Créer un composant</h2></div><button type="button" class="icon-btn" data-close="quickAddDialog">×</button></div><div class="quick-add-grid"><button data-quick-create="location">◈<strong>Lieu</strong></button><button data-quick-create="npc">♟<strong>PNJ</strong></button><button data-quick-create="secret">◆<strong>Secret</strong></button><button data-quick-create="threat">⚠<strong>Menace</strong></button><button data-quick-create="situation">✦<strong>Situation</strong></button><button data-quick-create="reward">🎁<strong>Récompense</strong></button><button data-quick-create="blank">?<strong>Blanc</strong></button><button data-quick-create="note">📝<strong>Note</strong></button></div></dialog>
+
+
+  <dialog id="newSessionDialog" class="modal compact-modal"><form id="newSessionForm"><div class="modal-head"><div><span class="eyebrow">NOUVELLE SESSION</span><h2>Créer une préparation</h2><p class="dialog-hint">La session actuellement ouverte sera conservée automatiquement dans les sessions sauvegardées.</p></div><button type="button" class="icon-btn" data-close="newSessionDialog">×</button></div><label class="solo-label">Nom de la session<input name="name" autocomplete="off" placeholder="Ex. Le village qui oubliait"></label><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="newSessionDialog">Annuler</button><button type="submit" class="primary">Créer</button></div></form></dialog>
 
   <div id="sessionStartFx" class="session-start-fx" aria-hidden="true"><div class="fx-ring"></div><div class="fx-ring second"></div><strong>LA SESSION COMMENCE</strong><span>Que faites-vous ?</span></div>
 
-  <input id="importFile" type="file" accept="application/json,.json" hidden>
+  <input id="importFile" type="file" accept=".cockpit,.json,application/json" hidden>
   <script src="app.js"></script>
 </body>
 </html>

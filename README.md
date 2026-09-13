@@ -1,22 +1,25 @@
-# DM COCKPIT V0.5 — Sly Flourish
+# Cockpit V1 — Préparation D&D 5e
 
-Console MJ D&D 5e optimisée pour iPad paysage.
+Console MJ optimisée pour iPad paysage, installable comme Web App et utilisable hors ligne.
 
-## Nouveautés V0.5
+## V1
 
-- Strong Start en mode Table à hauteur dynamique : le texte ne déborde plus et la liste des lieux se redimensionne proprement.
-- Sous les lieux, le **Fil rouge** remplace les anciennes Munitions et reste pilotable avec les mêmes coches « Si les PJ ne font rien » qu’en Préparation.
-- L’onglet **Rythme** remplace Menaces et regroupe **Situations** + **Menaces**, avec accès à `⚡ Injecter`.
-- Une injection apparaît dans le lieu courant comme **MENACE INJECTÉE** (rouge) ou **SITUATION INJECTÉE** (violet). Un toucher active/désactive sa surbrillance.
-- Aucun PNJ n’est pré-affecté aux lieux dans la démo. Les PNJ restent globaux et peuvent être ajoutés à plusieurs lieux.
-- Le bouton **NOTE** ouvre maintenant l’historique de toutes les notes de session et permet d’en ajouter sans fermer le panneau.
-- Nouvelle vraie session démo **Royaumes Oubliés** : *Le Relais de la Lune Brisée*, avec Pik, Tuskhan, Wonq et Silas, 5 lieux simples, 4 PNJ complets, 10 secrets, situations, menaces et récompenses. Elle est automatiquement disponible dans **••• → Sessions sauvegardées**.
-- Migration automatique des données locales V0.4/V0.3/V0.2 vers la V0.5.
+- Nouveau **menu principal** utilisant l’illustration de fond validée : reprise de la session active, nouvelle session, import depuis Fichiers et accès aux sessions sauvegardées.
+- **Logo Cockpit** validé utilisé dans l’interface, le manifeste PWA et l’icône iOS.
+- En mode **Table**, le bouton texte « Modifier » du lieu devient une icône crayon SVG.
+- Le terme **Situations** remplace **Munitions** dans l’ajout et la préparation.
+- **Composants** contient désormais l’onglet **Situations** entre Menaces et Récompenses, synchronisé avec les situations de Table.
+- PWA renforcée : assets, fond et icônes sont préchargés dans le Service Worker et restent disponibles hors ligne après installation.
+- Export d’une session complète au format `.cockpit`. Sur iPad, le partage natif permet notamment **Enregistrer dans Fichiers** lorsqu’il est disponible ; un téléchargement classique sert de repli.
+- Import des fichiers `.cockpit` et compatibilité avec les anciens exports JSON.
+- Migration automatique des données locales V0.5/V0.4/V0.3/V0.2 vers V1.
 
-## Installation
+## Installation / déploiement
 
 Déposer le contenu du dossier `dm-cockpit/` dans `Table-new-test/dm-cockpit/`.
 
-Adresse GitHub Pages :
+Adresse GitHub Pages historique :
 
 `https://biggie-mj.github.io/Table-new-test/dm-cockpit/`
+
+Sur iPad : ouvrir l’adresse dans Safari, puis **Partager → Sur l’écran d’accueil**. Après un premier chargement en ligne, Cockpit V1 peut être relancé hors ligne.
