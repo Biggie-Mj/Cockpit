@@ -1,8 +1,8 @@
-# Cockpit V1.4 — package GitHub Pages root-safe
+# Cockpit V1.5 — package GitHub Pages root-safe
 
 Version conçue pour être déposée directement à la racine du dépôt GitHub Pages.
 
-## V1.4
+## V1.5
 
 - Spotlights : retard calculé par rapport au joueur le plus servi ; orange à partir de 2, rouge à partir de 5.
 - Menaces et situations : une injection peut être annulée depuis COMPOSANTS pour rendre l’élément disponible à nouveau.
@@ -24,3 +24,9 @@ Lieux : `{ "format":"cockpit-locations", "formatVersion":1, "locations":[ ... ] 
 Champs lieu : `name`, `tier`, `concept`, `visuals`, `impulse`, `situation`, `faction`, `localPlot`, `regionalPlot`, `mainPlot`, `danger`, `reward`, `ifIgnored`.
 
 L’application accepte aussi un objet unique ou un tableau JSON brut pour ces deux imports. Les identifiants internes sont recréés à l’import.
+
+
+## V1.5
+- La démo contient un journal de partie illustratif.
+- Chaque ligne du journal peut être modifiée ou effacée individuellement.
+- Export texte chronologique du journal via le bouton Export.

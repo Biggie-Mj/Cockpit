@@ -7,18 +7,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Cockpit">
-  <title>Cockpit V1.4 — Préparation D&D 5e</title>
-  <link rel="manifest" href="manifest.webmanifest?v=1.4.0">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.4.0">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1.4.0">
-  <link rel="stylesheet" href="styles.css?v=1.4.0">
+  <title>Cockpit V1.5 — Préparation D&D 5e</title>
+  <link rel="manifest" href="manifest.webmanifest?v=1.5.0">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.5.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1.5.0">
+  <link rel="stylesheet" href="styles.css?v=1.5.0">
 </head>
 <body>
 
   <main id="homeView" class="home-screen">
     <div class="home-shade"></div>
     <section class="home-panel" aria-label="Menu principal Cockpit">
-      <div class="home-brand-row"><img src="icon-192.png?v=1.4.0" alt=""><div><span class="eyebrow">COCKPIT · V1.4</span><h1>Préparez. Pilotez. Improvisez.</h1></div></div>
+      <div class="home-brand-row"><img src="icon-192.png?v=1.5.0" alt=""><div><span class="eyebrow">COCKPIT · V1.5</span><h1>Préparez. Pilotez. Improvisez.</h1></div></div>
       <p class="home-copy">Votre console de préparation et de suivi de session D&amp;D 5e, pensée pour l’iPad.</p>
       <div class="home-actions">
         <button id="btnHomeResume" class="home-primary"><span>Reprendre la dernière session</span><small id="homeResumeTitle">Aucune session en cours</small></button>
@@ -33,7 +33,7 @@
   <div id="sheetScrim" class="sheet-scrim hidden"></div>
 
   <header class="topbar">
-    <div id="btnHome" class="brand" role="button" tabindex="0" title="Menu principal"><div class="brand-mark"><img src="icon-64.png?v=1.4.0" alt=""></div><div><h1>COCKPIT</h1><p>SLY FLOURISH · V1.4</p></div></div>
+    <div id="btnHome" class="brand" role="button" tabindex="0" title="Menu principal"><div class="brand-mark"><img src="icon-64.png?v=1.5.0" alt=""></div><div><h1>COCKPIT</h1><p>SLY FLOURISH · V1.5</p></div></div>
     <div class="session-title-wrap"><span class="eyebrow">SESSION</span><input id="sessionTitle" class="session-title" aria-label="Titre de la session"></div>
     <div class="top-actions">
       <button id="btnSearch" class="ghost icon-only" title="Rechercher">⌕</button>
@@ -98,7 +98,7 @@
   </main>
 
   <main id="libraryView" class="view-shell library-shell hidden"><section class="library-panel panel"><div class="library-tabs"><button class="library-tab active" data-library="secrets">Secrets</button><button class="library-tab" data-library="npcs">PNJ</button><button class="library-tab" data-library="locations">Lieux</button><button class="library-tab" data-library="threats">Menaces</button><button class="library-tab" data-library="situations">Situations</button><button class="library-tab" data-library="rewards">Récompenses</button><button class="library-tab" data-library="blanks">Blancs</button></div><div id="libraryContent" class="library-content"></div></section></main>
-  <main id="journalView" class="view-shell journal-shell hidden"><section class="journal-panel panel"><div class="panel-head"><div><span class="eyebrow">CE QUI EST DEVENU VRAI</span><h2>Journal de session</h2></div><button id="btnClearJournal" class="ghost">Effacer</button></div><div id="journalContent" class="journal-content"></div></section></main>
+  <main id="journalView" class="view-shell journal-shell hidden"><section class="journal-panel panel"><div class="panel-head"><div><span class="eyebrow">CE QUI EST DEVENU VRAI</span><h2>Journal de session</h2></div><div class="journal-head-actions"><button id="btnExportJournal" class="ghost">Export</button><button id="btnClearJournal" class="ghost">Effacer</button></div></div><div id="journalContent" class="journal-content"></div></section></main>
 
   <nav class="bottom-nav" aria-label="Navigation principale">
     <button class="nav-btn active" data-view="prep"><span>▦</span><b>PRÉPARER</b></button>
@@ -165,6 +165,6 @@
   <input id="importFile" type="file" accept=".cockpit,.json,application/json" hidden>
   <input id="npcImportFile" type="file" accept=".json,application/json" hidden>
   <input id="locationImportFile" type="file" accept=".json,application/json" hidden>
-  <script src="app.js?v=1.4.0"></script>
+  <script src="app.js?v=1.5.0"></script>
 </body>
 </html>

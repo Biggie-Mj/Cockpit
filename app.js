@@ -1,4 +1,4 @@
-const APP_VERSION='1.4';
+const APP_VERSION='1.5';
 const STORAGE_KEY='cockpit-v1';
 const LEGACY_KEYS=['dm-cockpit-v05','dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
 const BACKUP_KEY='cockpit-v1-backups';
@@ -16,7 +16,7 @@ const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'1.4',
+  version:'1.5',
   title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
   activeLocationId:'l1',
@@ -94,10 +94,21 @@ const DEMO={
     {id:'b2',prompt:'Que contient exactement la cache en plus de l’or attendu ?',resolution:'',resolved:false}
   ],
   pins:[],
-  journal:[]
+  journal:[
+    {id:'jd10',type:'question',text:'Le groupe se demande qui renseigne réellement les gobelins depuis le relais ; aucune réponse définitive n’a encore été trouvée.',locationId:'l2',createdAt:'2026-09-13T18:33:00+02:00'},
+    {id:'jd9',type:'canon',text:'Le jeune gobelin épargné se nomme Rikk. Il affirme que plusieurs membres du clan Dent-Cassée obéissent à Skarz uniquement par peur.',locationId:'l2',createdAt:'2026-09-13T18:29:00+02:00'},
+    {id:'jd8',type:'loot',text:'Le groupe récupère le fragment de carte dissimulé dans la doublure d’un sac de grain ainsi que 18 po et deux fioles d’huile.',locationId:'l2',createdAt:'2026-09-13T18:24:00+02:00'},
+    {id:'jd7',type:'decision',text:'Tuskhan accepte de laisser partir un gobelin blessé en échange de l’emplacement approximatif de Lysa et d’un mot de passe utilisé par les sentinelles.',locationId:'l2',createdAt:'2026-09-13T18:17:00+02:00'},
+    {id:'jd6',type:'secret',text:'Secret révélé (Interrogatoire) : Le moulin est un relais — le camp principal de Skarz se trouve plus profondément dans le bois.',locationId:'l2',createdAt:'2026-09-13T18:08:00+02:00'},
+    {id:'jd5',type:'location',text:'Les PJ quittent le relais et atteignent le Vieux Moulin d’Ardeep en contournant la route principale.',locationId:'l2',createdAt:'2026-09-13T17:52:00+02:00'},
+    {id:'jd4',type:'quote',text:'Mara Vell : « Si vous suivez la grande route, eux vous verront venir. Le vieux chemin du moulin est plus discret. »',locationId:'l1',createdAt:'2026-09-13T17:31:00+02:00'},
+    {id:'jd3',type:'lead',text:'Silas repère trois séries de traces quittant la route vers le nord ainsi qu’un morceau de corde marqué du symbole Dent-Cassée.',locationId:'l1',createdAt:'2026-09-13T17:23:00+02:00'},
+    {id:'jd2',type:'decision',text:'Le groupe choisit de sécuriser Borin avant de poursuivre les ravisseurs ; Pik stabilise le marchand pendant que Silas inspecte les traces autour du chariot.',locationId:'l1',createdAt:'2026-09-13T17:14:00+02:00'},
+    {id:'jd1',type:'location',text:'Strong Start joué — le chariot de Borin s’est écrasé devant le relais et les PJ ont décidé d’aider immédiatement.',locationId:'l1',createdAt:'2026-09-13T17:06:00+02:00'}
+  ]
 };
 
-const EMPTY=()=>({version:'1.4',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
+const EMPTY=()=>({version:'1.5',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
 
 let state=load();
 let history=[];
@@ -165,9 +176,8 @@ function setSavedSessions(v){
   localStorage.setItem(SAVED_SESSIONS_KEY,JSON.stringify([...demos,...users]));
 }
 function ensureDemoSavedSession(){
-  const list=getSavedSessions();
-  if(list.some(x=>x.id==='demo-forgotten-realms'))return;
-  list.unshift({id:'demo-forgotten-realms',name:'Démo · Le Relais de la Lune Brisée',updatedAt:nowStamp(),builtInDemo:true,state:clone({...DEMO,saveSlotId:null})});
+  const list=getSavedSessions(),entry={id:'demo-forgotten-realms',name:'Démo · Le Relais de la Lune Brisée',updatedAt:nowStamp(),builtInDemo:true,state:clone({...DEMO,saveSlotId:null})},idx=list.findIndex(x=>x.id==='demo-forgotten-realms');
+  if(idx>=0)list[idx]=entry;else list.unshift(entry);
   setSavedSessions(list);
 }
 
@@ -379,7 +389,37 @@ function bindLibraryActions(){
   $$('[data-toggle-used]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.toggleUsed.split(':');if(type==='threat'||type==='situation')toggleLibraryInjection(type,id);else commit(()=>{const item=state.rewards.find(x=>x.id===id);if(item)item.used=!item.used},null)});
   $$('[data-lib-reveal]').forEach(b=>b.onclick=()=>{state.contextTab='secrets';revealPendingId=b.dataset.libReveal;switchView('table');renderTable()});
 }
-function renderJournal(){const icon={note:'📝',decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗',secret:'◆',location:'◈',canon:'✦'};$('#journalContent').innerHTML=state.journal.length?state.journal.map(j=>`<article class="journal-entry"><time>${fmtTime(j.createdAt)}</time><div><strong>${icon[j.type]||'📝'} ${esc(locationName(j.locationId))}</strong><p>${esc(j.text)}</p></div><small>${new Date(j.createdAt).toLocaleDateString('fr-FR')}</small></article>`).join(''):'<div class="journal-empty">Rien n’est encore devenu canon.</div>'}
+function renderJournal(){
+  const icon={note:'📝',decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗',secret:'◆',location:'◈',canon:'✦'};
+  $('#journalContent').innerHTML=state.journal.length?state.journal.map(j=>`<article class="journal-entry"><time>${fmtTime(j.createdAt)}</time><div><strong>${icon[j.type]||'📝'} ${esc(locationName(j.locationId))}</strong><p>${esc(j.text)}</p></div><div class="journal-entry-side"><small>${new Date(j.createdAt).toLocaleDateString('fr-FR')}</small><div class="journal-entry-actions"><button class="ghost" data-edit-journal="${j.id}" title="Modifier cette ligne" aria-label="Modifier cette ligne">✎</button><button class="ghost journal-delete" data-delete-journal="${j.id}" title="Effacer cette ligne" aria-label="Effacer cette ligne">×</button></div></div></article>`).join(''):'<div class="journal-empty">Rien n’est encore devenu canon.</div>';
+  $$('[data-edit-journal]').forEach(b=>b.onclick=()=>editJournalEntry(b.dataset.editJournal));
+  $$('[data-delete-journal]').forEach(b=>b.onclick=()=>deleteJournalEntry(b.dataset.deleteJournal));
+}
+function editJournalEntry(id){
+  const item=state.journal.find(j=>j.id===id);if(!item)return;
+  const next=prompt('Modifier cette ligne du journal :',item.text);if(next===null)return;
+  const text=String(next).trim();if(!text)return toast('La ligne ne peut pas être vide');
+  commit(()=>item.text=text,'Ligne du journal modifiée');
+}
+function deleteJournalEntry(id){
+  const item=state.journal.find(j=>j.id===id);if(!item)return;
+  if(!confirm('Effacer cette ligne du journal ?'))return;
+  commit(()=>state.journal=state.journal.filter(j=>j.id!==id),'Ligne du journal effacée');
+}
+function journalTypeLabel(type){return ({note:'Note',decision:'Décision',quote:'Citation',question:'Question ouverte',death:'Mort / chute',loot:'Butin / récompense',lead:'Piste',secret:'Secret révélé',location:'Déplacement / lieu',canon:'Canon'})[type]||'Note'}
+function safeTextFileName(value){return String(value||'Résumé').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim().slice(0,120)||'Résumé'}
+async function exportJournal(){
+  if(!state.journal.length)return toast('Le journal est vide');
+  const chronological=[...state.journal].sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
+  const firstDate=chronological[0]?.createdAt||state.sessionStartedAt||nowStamp(),dateLabel=new Date(firstDate).toLocaleDateString('fr-FR'),title=`Résumé - ${state.title||'Session sans titre'} - ${dateLabel}`;
+  const players=(state.players||[]).map(p=>p.name).filter(Boolean).join(', ')||'Non renseignés';
+  const lines=[title,'='.repeat(title.length),'',`Session : ${state.title||'Session sans titre'}`,`Date de référence : ${dateLabel}`,`Personnages : ${players}`,`Entrées du journal : ${chronological.length}`,'',"JOURNAL CHRONOLOGIQUE",'----------------------',''];
+  chronological.forEach((j,i)=>{const d=new Date(j.createdAt),stamp=Number.isNaN(d.getTime())?'Date inconnue':d.toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}),place=locationName(j.locationId);lines.push(`${i+1}. ${stamp} — ${place} — ${journalTypeLabel(j.type)}`);lines.push(j.text);lines.push('')});
+  lines.push('---');lines.push('Ce document reprend l’intégralité du journal de Cockpit dans l’ordre chronologique. Il peut servir de source pour rédiger le compte rendu détaillé de la session.');
+  const text=lines.join('\n'),name=`${safeTextFileName(title)}.txt`,file=new File([text],name,{type:'text/plain;charset=utf-8'});
+  try{if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title,files:[file]});toast('Résumé du journal prêt à enregistrer');return}}catch(err){if(err?.name==='AbortError')return;console.warn(err)}
+  downloadBlob(name,file);toast('Journal exporté');
+}
 
 function renderQuickNoteHistory(){
   const el=$('#quickNoteHistory');if(!el)return;
@@ -487,11 +527,11 @@ $('#genericForm').onsubmit=e=>{e.preventDefault();const def=genericDefs[genericC
 $('#newSessionForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);$('#newSessionDialog').close();createNewSession(String(f.get('name')||''))};
 $('#quickNoteForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),text=String(f.get('text')||'').trim(),type=f.get('type');if(!text)return;commit(()=>state.journal.unshift({id:uid('j'),type,text,locationId:state.activeLocationId,createdAt:nowStamp()}),'Note ajoutée');e.target.reset();renderQuickNoteHistory();setTimeout(()=>e.target.elements.text.focus(),30)};
 
-$$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;persist();renderLibrary()});$('#btnClearJournal').onclick=()=>{if(confirm('Effacer le journal ?'))commit(()=>state.journal=[],'Journal effacé')};$('#btnImportNpcFromEditor').onclick=()=>openComponentImport('npc');$('#btnImportLocationFromEditor').onclick=()=>openComponentImport('location');
+$$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;persist();renderLibrary()});$('#btnClearJournal').onclick=()=>{if(confirm('Effacer le journal ?'))commit(()=>state.journal=[],'Journal effacé')};$('#btnExportJournal').onclick=exportJournal;$('#btnImportNpcFromEditor').onclick=()=>openComponentImport('npc');$('#btnImportLocationFromEditor').onclick=()=>openComponentImport('location');
 $('#npcImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importNpcFile(file)}catch(err){console.error(err);toast('Fichier PNJ incompatible')}e.target.value=''};
 $('#locationImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importLocationFile(file)}catch(err){console.error(err);toast('Fichier lieu incompatible')}e.target.value=''};
 $('#btnExport').onclick=exportSession;$('#btnImport').onclick=()=>$('#importFile').click();$('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnResetDemo').onclick=()=>{if(confirm('Restaurer la démonstration ?')){snapshot();state=normalize(clone(DEMO));persist();render();toast('Démo restaurée')}};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.4.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.5.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();
