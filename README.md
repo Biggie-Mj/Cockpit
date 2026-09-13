@@ -23,3 +23,7 @@ Adresse GitHub Pages historique :
 `https://biggie-mj.github.io/Table-new-test/dm-cockpit/`
 
 Sur iPad : ouvrir l’adresse dans Safari, puis **Partager → Sur l’écran d’accueil**. Après un premier chargement en ligne, Cockpit V1 peut être relancé hors ligne.
+
+
+## Correctif illustrations V1
+Les deux illustrations fournies sont embarquées localement dans `assets/` et les icônes dans `icons/`. Les chemins sont versionnés et le cache hors ligne a été incrémenté afin d'empêcher une ancienne PWA d'afficher les visuels de la version précédente.
