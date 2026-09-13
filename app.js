@@ -1,4 +1,4 @@
-const APP_VERSION='1.0';
+const APP_VERSION='1.4';
 const STORAGE_KEY='cockpit-v1';
 const LEGACY_KEYS=['dm-cockpit-v05','dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
 const BACKUP_KEY='cockpit-v1-backups';
@@ -6,6 +6,7 @@ const LEGACY_BACKUP_KEYS=['dm-cockpit-v05-backups'];
 const SAVED_SESSIONS_KEY='cockpit-v1-sessions';
 const LEGACY_SAVED_SESSIONS_KEYS=['dm-cockpit-v05-sessions'];
 const AUTO_BACKUP_MS=30*60*1000;
+const MAX_SAVED_SESSIONS=15;
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const uid=(p='id')=>`${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
@@ -15,7 +16,7 @@ const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'1.0',
+  version:'1.4',
   title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
   activeLocationId:'l1',
@@ -96,7 +97,7 @@ const DEMO={
   journal:[]
 };
 
-const EMPTY=()=>({version:'1.0',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
+const EMPTY=()=>({version:'1.4',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
 
 let state=load();
 let history=[];
@@ -159,7 +160,10 @@ function threatTypeLabel(t){return t==='ordinary'?'ORDINAIRE':t==='serious'?'SÉ
 function getBackups(){try{const raw=localStorage.getItem(BACKUP_KEY);if(raw)return JSON.parse(raw);for(const key of LEGACY_BACKUP_KEYS){const legacy=localStorage.getItem(key);if(legacy){const parsed=JSON.parse(legacy);localStorage.setItem(BACKUP_KEY,JSON.stringify(parsed));return parsed}}return []}catch{return []}}
 function setBackups(v){localStorage.setItem(BACKUP_KEY,JSON.stringify(v.slice(0,5)))}
 function getSavedSessions(){try{const raw=localStorage.getItem(SAVED_SESSIONS_KEY);if(raw)return JSON.parse(raw);for(const key of LEGACY_SAVED_SESSIONS_KEYS){const legacy=localStorage.getItem(key);if(legacy){const parsed=JSON.parse(legacy);localStorage.setItem(SAVED_SESSIONS_KEY,JSON.stringify(parsed));return parsed}}return []}catch{return []}}
-function setSavedSessions(v){localStorage.setItem(SAVED_SESSIONS_KEY,JSON.stringify(v.slice(0,40)))}
+function setSavedSessions(v){
+  const demos=v.filter(x=>x?.builtInDemo).slice(0,1),users=v.filter(x=>!x?.builtInDemo).slice(0,MAX_SAVED_SESSIONS);
+  localStorage.setItem(SAVED_SESSIONS_KEY,JSON.stringify([...demos,...users]));
+}
 function ensureDemoSavedSession(){
   const list=getSavedSessions();
   if(list.some(x=>x.id==='demo-forgotten-realms'))return;
@@ -192,10 +196,10 @@ function renderPlayers(){
   const el=$('#playerRibbon');
   document.documentElement.style.setProperty('--players-h','48px');
   const indexed=state.players.map((p,i)=>({p,i})).sort((a,b)=>(b.p.spotlightCount||0)-(a.p.spotlightCount||0)||a.i-b.i);
-  const counts=indexed.map(x=>x.p.spotlightCount||0),max=Math.max(0,...counts),min=Math.min(...counts,0),aboveMin=[...new Set(counts.filter(c=>c>min))].sort((a,b)=>a-b)[0],lagGap=aboveMin===undefined?0:aboveMin-min;
+  const counts=indexed.map(x=>x.p.spotlightCount||0),max=counts.length?Math.max(...counts):0;
   const chips=indexed.map(({p})=>{
-    const count=p.spotlightCount||0;
-    let rank='';if(max>0&&count===max)rank='leader';else if(count===min&&lagGap>=5)rank='lag-red';else if(count===min&&lagGap>=2)rank='lag-orange';
+    const count=p.spotlightCount||0,gap=max-count;
+    let rank='';if(max>0&&count===max)rank='leader';else if(gap>=5)rank='lag-red';else if(gap>=2)rank='lag-orange';
     const flash=spotlightFlashId===p.id?' spotlight-flash':'';
     return `<div class="player-chip ${rank}${flash}" data-player-id="${p.id}"><button class="spotlight-star" data-add-spotlight="${p.id}" title="Ajouter un moment de spotlight">🌟</button><button class="player-main" data-open-spotlight="${p.id}"><strong>${esc(p.name)}</strong><span class="spotlight-count">${count}</span></button></div>`;
   }).join('');
@@ -307,10 +311,13 @@ function makeCurrentLocation(id){
 }
 function openStrongStartPlay(){if(state.strongStart.used)return;$('#strongStartPlayText').textContent=state.strongStart.text||'Aucun Strong Start préparé.';$('#strongStartPlayDialog').showModal()}
 function playStrongStart(){if(state.strongStart.used)return;commit(()=>{state.strongStart.used=true;if(!state.sessionStartedAt)state.sessionStartedAt=nowStamp();state.journal.unshift({id:uid('j'),type:'location',text:'Strong Start joué — la session commence.',locationId:state.activeLocationId,createdAt:nowStamp()})},'Strong Start joué');$('#strongStartPlayDialog').close();playSessionStartFx()}
-function playSessionStartFx(){const fx=$('#sessionStartFx');fx.classList.add('show');clearTimeout(playSessionStartFx._t);playSessionStartFx._t=setTimeout(()=>fx.classList.remove('show'),1900)}
+function hideSessionStartFx(){const fx=$('#sessionStartFx');if(!fx)return;fx.classList.remove('show');fx.setAttribute('aria-hidden','true');clearTimeout(playSessionStartFx._t)}
+function playSessionStartFx(){const fx=$('#sessionStartFx');if(!fx)return;fx.classList.add('show');fx.setAttribute('aria-hidden','false');clearTimeout(playSessionStartFx._t);playSessionStartFx._t=setTimeout(hideSessionStartFx,5500)}
 function methodIcon(method){return ({'Conversation':'💬','Observation':'👁','Document':'📜','Magie':'✨','Déduction des joueurs':'🧠','Autre':'✦'})[method]||'◆'}
 function revealSecret(id,method){const s=state.secrets.find(x=>x.id===id);if(!s||s.revealed)return;recentlyRevealedSecretId=id;commit(()=>{s.revealed=true;s.revealedAt=nowStamp();s.method=method;state.journal.unshift({id:uid('j'),type:'secret',text:`Secret révélé (${method}) : ${s.title} — ${s.text}`,locationId:state.activeLocationId,createdAt:nowStamp()})},'Secret révélé');revealPendingId=null;setTimeout(()=>{if(recentlyRevealedSecretId===id){recentlyRevealedSecretId=null;renderContextPanel()}},4000)}
 function injectItem(type,id){const arr=type==='threat'?state.threats:state.situations,item=arr.find(x=>x.id===id);if(!item)return;if(item.injected){toast('Déjà injectée');return}const loc=activeLocation();if(!loc)return toast('Choisis d’abord un lieu actuel');commit(()=>{item.injected=true;item.activeInjected=true;item.injectedLocationId=loc.id;item.injectedAt=nowStamp();item.used=true},type==='threat'?'Menace injectée':'Situation injectée');renderInjection()}
+function makeInjectionAvailable(type,id){const arr=type==='threat'?state.threats:state.situations,item=arr.find(x=>x.id===id);if(!item||!item.injected)return;commit(()=>{item.injected=false;item.activeInjected=false;item.injectedLocationId=null;item.injectedAt=null;item.used=false},type==='threat'?'Menace rendue disponible':'Situation rendue disponible')}
+function toggleLibraryInjection(type,id){const arr=type==='threat'?state.threats:state.situations,item=arr.find(x=>x.id===id);if(!item)return;if(item.injected)makeInjectionAvailable(type,id);else injectItem(type,id)}
 function toggleInjectedHighlight(token){const [type,id]=token.split(':'),arr=type==='threat'?state.threats:state.situations,item=arr.find(x=>x.id===id);if(!item)return;commit(()=>item.activeInjected=!item.activeInjected,null)}
 
 function showNpcSheet(id){
@@ -337,17 +344,41 @@ const genericDefs={
 };
 function openGenericEditor(type,id=null){const def=genericDefs[type];if(!def)return;genericContext={type,id};const arr=state[def.collection],item=id?arr.find(x=>x.id===id):null;$('#genericEyebrow').textContent=def.eyebrow;$('#genericDialogTitle').textContent=id?`Modifier · ${def.title}`:def.title;$('#genericFields').innerHTML=def.fields.map(f=>{const v=item?.[f.name]??'',cls=f.span===2?'span2':'';if(f.type==='select')return `<label class="${cls}">${esc(f.label)}<select name="${f.name}">${f.options.map(o=>`<option value="${esc(o[0])}" ${String(v)===o[0]?'selected':''}>${esc(o[1])}</option>`).join('')}</select></label>`;if(f.type==='textarea')return `<label class="${cls}">${esc(f.label)}<textarea name="${f.name}" rows="4">${esc(v)}</textarea></label>`;return `<label class="${cls}">${esc(f.label)}<input name="${f.name}" value="${esc(v)}" required></label>`}).join('');$('#btnDeleteGeneric').classList.toggle('hidden',!id);$('#genericDialog').showModal()}
 
+function libraryToolbar(tab){
+  const defs={
+    secrets:{label:'Secret',type:'secret'},
+    npcs:{label:'PNJ',type:'npc',importKind:'npc'},
+    locations:{label:'Lieu',type:'location',importKind:'location'},
+    threats:{label:'Menace',type:'threat'},
+    situations:{label:'Situation',type:'situation'},
+    rewards:{label:'Récompense',type:'reward'},
+    blanks:{label:'Blanc',type:'blank'}
+  },d=defs[tab];if(!d)return '';
+  return `<div class="component-toolbar"><div><span class="eyebrow">COMPOSANTS</span><strong>${esc(d.label)}${tab==='npcs'||tab==='locations'?'s':''}</strong></div><div class="component-toolbar-actions"><button class="primary" data-create-component="${d.type}">＋ ${esc(d.label)}</button>${d.importKind?`<button class="ghost" data-import-component="${d.importKind}">⇩ Importer</button>`:''}</div></div>`;
+}
 function renderLibrary(){
   $$('.library-tab').forEach(b=>b.classList.toggle('active',b.dataset.library===state.libraryTab));const el=$('#libraryContent'),tab=state.libraryTab;let html='';
   if(tab==='secrets')html=state.secrets.map(s=>`<article class="library-card ${s.revealed?'revealed-secret':''}"><header><div><h3>${esc(s.title)}</h3><div class="subtitle">${s.revealed?`${methodIcon(s.method)} RÉVÉLÉ · ${esc(s.method||'')}`:'SECRET FLOTTANT'}</div></div><span>${s.revealed?'✓':'○'}</span></header><p>${esc(s.text)}</p><footer>${!s.revealed?`<button class="primary" data-lib-reveal="${s.id}">Révéler</button>`:''}<button data-edit-secret="${s.id}">Modifier</button></footer></article>`).join('');
   if(tab==='npcs')html=state.npcs.map(n=>`<article class="library-card"><header><div><h3>${esc(n.name)}</h3><div class="subtitle">${esc(n.role||'PNJ')}</div></div><span>${initials(n.name)}</span></header><p><strong>Veut :</strong> ${esc(n.wants||'—')}<br><strong>Craint :</strong> ${esc(n.fears||'—')}<br><strong>Sait :</strong> ${esc(n.knows||'—')}<br><strong>Cache :</strong> ${esc(n.hides||'—')}</p><footer><button data-show-npc="${n.id}">Voir</button><button data-edit-npc="${n.id}">Modifier</button></footer></article>`).join('');
-  if(tab==='threats')html=state.threats.map(t=>`<article class="library-card"><header><div><h3>${esc(t.name)}</h3><div class="subtitle">${threatTypeLabel(t.type)} · ${t.injected?'INJECTÉE':'DISPONIBLE'}</div></div></header><p>${esc(t.summary||'')}</p><footer><button data-toggle-used="threat:${t.id}">${t.injected?'Injectée':'Disponible'}</button><button data-edit-generic="threat:${t.id}">Modifier</button></footer></article>`).join('');
-  if(tab==='situations')html=state.situations.map(x=>`<article class="library-card ${x.injected?'revealed-secret':''}"><header><div><h3>Situation</h3><div class="subtitle">${x.injected?'INJECTÉE':'DISPONIBLE'}</div></div><span>${x.injected?'✓':'○'}</span></header><p>${esc(x.text||'')}</p><footer><button data-toggle-used="situation:${x.id}">${x.injected?'Injectée':'Disponible'}</button><button data-edit-generic="situation:${x.id}">Modifier</button></footer></article>`).join('');
+  if(tab==='locations')html=state.locations.map(l=>`<article class="library-card"><header><div><h3>${esc(l.name)}</h3><div class="subtitle">${l.tier==='reserve'?'RÉSERVE':'PRINCIPAL'} · ${statusLabel(l)}</div></div><span>◈</span></header><p><strong>Concept :</strong> ${esc(l.concept||'—')}<br><strong>Situation :</strong> ${esc(l.situation||'—')}</p><footer><button data-open-location="${l.id}">Voir en Table</button><button data-edit-location-lib="${l.id}">Modifier</button></footer></article>`).join('');
+  if(tab==='threats')html=state.threats.map(t=>`<article class="library-card ${t.injected?'revealed-secret':''}"><header><div><h3>${esc(t.name)}</h3><div class="subtitle">${threatTypeLabel(t.type)} · ${t.injected?'INJECTÉE':'DISPONIBLE'}</div></div><span>${t.injected?'✓':'○'}</span></header><p>${esc(t.summary||'')}</p><footer><button class="${t.injected?'ghost':'primary'}" data-toggle-used="threat:${t.id}">${t.injected?'↺ Rendre disponible':'⚡ Injecter'}</button><button data-edit-generic="threat:${t.id}">Modifier</button></footer></article>`).join('');
+  if(tab==='situations')html=state.situations.map(x=>`<article class="library-card ${x.injected?'revealed-secret':''}"><header><div><h3>Situation</h3><div class="subtitle">${x.injected?'INJECTÉE':'DISPONIBLE'}</div></div><span>${x.injected?'✓':'○'}</span></header><p>${esc(x.text||'')}</p><footer><button class="${x.injected?'ghost':'primary'}" data-toggle-used="situation:${x.id}">${x.injected?'↺ Rendre disponible':'⚡ Injecter'}</button><button data-edit-generic="situation:${x.id}">Modifier</button></footer></article>`).join('');
   if(tab==='rewards')html=state.rewards.map(r=>`<article class="library-card"><header><div><h3>${esc(r.type)}</h3><div class="subtitle">${r.used?'ATTRIBUÉE':'DISPONIBLE'}</div></div></header><p>${esc(r.text)}</p><footer><button data-toggle-used="reward:${r.id}">${r.used?'Réouvrir':'Utilisée'}</button><button data-edit-generic="reward:${r.id}">Modifier</button></footer></article>`).join('');
   if(tab==='blanks')html=state.blanks.map(b=>`<article class="library-card"><header><div><h3>${esc(b.prompt)}</h3><div class="subtitle">${b.resolved?'DEVENU CANON':'INDÉTERMINÉ'}</div></div></header><p>${b.resolved?esc(b.resolution):'La partie peut fournir la réponse.'}</p><footer><button data-edit-generic="blank:${b.id}">${b.resolved?'Modifier':'Définir'}</button></footer></article>`).join('');
-  el.innerHTML=`<div class="library-grid">${html||'<div class="journal-empty">Aucun élément.</div>'}</div>`;bindLibraryActions();
+  el.innerHTML=`${libraryToolbar(tab)}<div class="library-grid">${html||'<div class="journal-empty">Aucun élément.</div>'}</div>`;bindLibraryActions();
 }
-function bindLibraryActions(){$$('[data-edit-secret]').forEach(b=>b.onclick=()=>openGenericEditor('secret',b.dataset.editSecret));$$('[data-edit-npc]').forEach(b=>b.onclick=()=>openNpcEditor(b.dataset.editNpc));$$('[data-show-npc]').forEach(b=>b.onclick=()=>showNpcSheet(b.dataset.showNpc));$$('[data-edit-generic]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.editGeneric.split(':');openGenericEditor(type,id)});$$('[data-toggle-used]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.toggleUsed.split(':');if(type==='threat'||type==='situation')injectItem(type,id);else commit(()=>{const item=state.rewards.find(x=>x.id===id);if(item)item.used=!item.used},null)});$$('[data-lib-reveal]').forEach(b=>b.onclick=()=>{state.contextTab='secrets';revealPendingId=b.dataset.libReveal;switchView('table');renderTable()})}
+function bindLibraryActions(){
+  $$('[data-create-component]').forEach(b=>b.onclick=()=>{const type=b.dataset.createComponent;if(type==='npc')openNpcEditor();else if(type==='location')openLocationEditor();else openGenericEditor(type)});
+  $$('[data-import-component]').forEach(b=>b.onclick=()=>openComponentImport(b.dataset.importComponent));
+  $$('[data-edit-secret]').forEach(b=>b.onclick=()=>openGenericEditor('secret',b.dataset.editSecret));
+  $$('[data-edit-npc]').forEach(b=>b.onclick=()=>openNpcEditor(b.dataset.editNpc));
+  $$('[data-show-npc]').forEach(b=>b.onclick=()=>showNpcSheet(b.dataset.showNpc));
+  $$('[data-edit-location-lib]').forEach(b=>b.onclick=()=>openLocationEditor(b.dataset.editLocationLib));
+  $$('[data-open-location]').forEach(b=>b.onclick=()=>{state.previewLocationId=b.dataset.openLocation;persist();switchView('table');renderTable()});
+  $$('[data-edit-generic]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.editGeneric.split(':');openGenericEditor(type,id)});
+  $$('[data-toggle-used]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.toggleUsed.split(':');if(type==='threat'||type==='situation')toggleLibraryInjection(type,id);else commit(()=>{const item=state.rewards.find(x=>x.id===id);if(item)item.used=!item.used},null)});
+  $$('[data-lib-reveal]').forEach(b=>b.onclick=()=>{state.contextTab='secrets';revealPendingId=b.dataset.libReveal;switchView('table');renderTable()});
+}
 function renderJournal(){const icon={note:'📝',decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗',secret:'◆',location:'◈',canon:'✦'};$('#journalContent').innerHTML=state.journal.length?state.journal.map(j=>`<article class="journal-entry"><time>${fmtTime(j.createdAt)}</time><div><strong>${icon[j.type]||'📝'} ${esc(locationName(j.locationId))}</strong><p>${esc(j.text)}</p></div><small>${new Date(j.createdAt).toLocaleDateString('fr-FR')}</small></article>`).join(''):'<div class="journal-empty">Rien n’est encore devenu canon.</div>'}
 
 function renderQuickNoteHistory(){
@@ -360,11 +391,29 @@ function renderQuickNoteHistory(){
 function openQuickNote(){const f=$('#quickNoteForm');f.reset();renderQuickNoteHistory();$('#quickNoteDialog').showModal();setTimeout(()=>f.elements.text.focus(),50)}
 function renderBackupButton(){const n=getBackups().length;$('#btnBackups').textContent=`Backups de sécurité${n?` · ${n}`:''}`}
 function openBackups(){$('#moreMenu').classList.add('hidden');const b=getBackups();$('#backupList').innerHTML=b.length?b.map(x=>`<div class="backup-row"><div><strong>${esc(x.reason)}</strong><small>${new Date(x.createdAt).toLocaleString('fr-FR')}</small></div><button data-restore-backup="${x.id}" class="ghost">Restaurer</button></div>`).join(''):'<div class="empty-mini">Aucun backup.</div>';$$('[data-restore-backup]').forEach(btn=>btn.onclick=()=>{const x=getBackups().find(z=>z.id===btn.dataset.restoreBackup);if(!x)return;if(confirm('Restaurer ce backup ?')){snapshot();state=normalize(clone(x.state));persist();render();$('#backupsDialog').close();toast('Backup restauré')}});$('#backupsDialog').showModal()}
-function openSessions(){$('#moreMenu').classList.add('hidden');$('#sessionSaveName').value=state.title||'';renderSavedSessions();$('#sessionsDialog').showModal()}
-function renderSavedSessions(){const list=getSavedSessions();$('#savedSessionsList').innerHTML=list.length?list.map(s=>`<article class="saved-session-row"><div><span class="session-state ${s.builtInDemo?'demo':s.state?.sessionStartedAt?'running':'prepared'}">${s.builtInDemo?'DÉMO ROYAUMES OUBLIÉS':s.state?.sessionStartedAt?'PARTIE EN COURS':'PRÉPARÉE'}</span><strong>${esc(s.name)}</strong><small>${s.builtInDemo?'Modèle standard prêt à tester':`Mis à jour ${new Date(s.updatedAt).toLocaleString('fr-FR')}`}</small></div><div class="saved-session-actions"><button data-load-session="${s.id}" class="primary">${s.builtInDemo?'Charger':'Reprendre'}</button>${s.builtInDemo?'':`<button data-delete-session="${s.id}" class="danger">×</button>`}</div></article>`).join(''):'<div class="empty-mini">Aucune session sauvegardée.</div>';$$('[data-load-session]').forEach(b=>b.onclick=()=>loadSavedSession(b.dataset.loadSession));$$('[data-delete-session]').forEach(b=>b.onclick=()=>deleteSavedSession(b.dataset.deleteSession))}
-function saveCurrentSession(){const name=$('#sessionSaveName').value.trim()||state.title||'Session sans titre',list=getSavedSessions(),id=state.saveSlotId||uid('ss'),entry={id,name,updatedAt:nowStamp(),state:clone({...state,saveSlotId:id})};const idx=list.findIndex(x=>x.id===id);if(idx>=0)list[idx]=entry;else list.unshift(entry);state.saveSlotId=id;state.title=name;setSavedSessions(list);persist();renderSavedSessions();toast('Session sauvegardée')}
+function userSavedSessions(){return getSavedSessions().filter(x=>!x.builtInDemo)}
+function openSessions(){$('#moreMenu').classList.add('hidden');$('#sessionSaveName').value=state.title||'';$('#saveChoicePanel').classList.add('hidden');renderSavedSessions();$('#sessionsDialog').showModal()}
+function renderSavedSessions(){
+  const list=getSavedSessions(),users=list.filter(x=>!x.builtInDemo),count=$('#sessionSlotCount');if(count)count.textContent=`${users.length} / ${MAX_SAVED_SESSIONS} sauvegardes`;
+  $('#savedSessionsList').innerHTML=list.length?list.map(s=>`<article class="saved-session-row ${state.saveSlotId===s.id?'current-slot':''}"><div><span class="session-state ${s.builtInDemo?'demo':s.state?.sessionStartedAt?'running':'prepared'}">${s.builtInDemo?'DÉMO ROYAUMES OUBLIÉS':s.state?.sessionStartedAt?'PARTIE EN COURS':'PRÉPARÉE'}</span><strong>${esc(s.name)}</strong><small>${s.builtInDemo?'Modèle standard prêt à tester':`${state.saveSlotId===s.id?'EMPLACEMENT ACTUEL · ':''}Mis à jour ${new Date(s.updatedAt).toLocaleString('fr-FR')}`}</small></div><div class="saved-session-actions"><button data-load-session="${s.id}" class="primary">${s.builtInDemo?'Charger':'Reprendre'}</button>${s.builtInDemo?'':`<button data-delete-session="${s.id}" class="danger" title="Supprimer">×</button>`}</div></article>`).join(''):'<div class="empty-mini">Aucune session sauvegardée.</div>';
+  $$('[data-load-session]').forEach(b=>b.onclick=()=>loadSavedSession(b.dataset.loadSession));$$('[data-delete-session]').forEach(b=>b.onclick=()=>deleteSavedSession(b.dataset.deleteSession));
+}
+function openSaveChoices(){
+  const panel=$('#saveChoicePanel'),users=userSavedSessions(),current=users.find(x=>x.id===state.saveSlotId),canCreate=users.length<MAX_SAVED_SESSIONS;
+  panel.innerHTML=`<div class="save-choice-head"><div><span class="eyebrow">DESTINATION</span><strong>Où sauvegarder l’état actuel ?</strong></div><span>${users.length}/${MAX_SAVED_SESSIONS}</span></div><div class="save-choice-actions">${current?`<button class="primary" data-save-current-slot="${current.id}">↻ Mettre à jour « ${esc(current.name)} »</button>`:''}<button class="${canCreate?'primary':'ghost'}" data-save-new-slot ${canCreate?'':'disabled'}>＋ Nouvelle sauvegarde ${canCreate?`(${MAX_SAVED_SESSIONS-users.length} emplacement${MAX_SAVED_SESSIONS-users.length>1?'s':''} libre${MAX_SAVED_SESSIONS-users.length>1?'s':''})`:'— 15/15'}</button></div>${users.length?`<div class="save-overwrite-title">Ou écraser une sauvegarde existante</div><div class="save-overwrite-list">${users.map(x=>`<button data-overwrite-slot="${x.id}"><strong>${esc(x.name)}</strong><small>${new Date(x.updatedAt).toLocaleString('fr-FR')}</small></button>`).join('')}</div>`:''}`;
+  panel.classList.remove('hidden');
+  if(current)panel.querySelector('[data-save-current-slot]').onclick=()=>saveCurrentSession(current.id,false);
+  const add=panel.querySelector('[data-save-new-slot]');if(add&&!add.disabled)add.onclick=()=>saveCurrentSession(null,true);
+  $$('[data-overwrite-slot]').forEach(b=>b.onclick=()=>{const target=users.find(x=>x.id===b.dataset.overwriteSlot);if(target&&confirm(`Écraser la sauvegarde « ${target.name} » avec l’état actuel ?`))saveCurrentSession(target.id,false)});
+}
+function saveCurrentSession(targetId=null,createNew=false){
+  const name=$('#sessionSaveName').value.trim()||state.title||'Session sans titre',list=getSavedSessions(),users=list.filter(x=>!x.builtInDemo);
+  if(createNew&&users.length>=MAX_SAVED_SESSIONS)return toast('15 sauvegardes déjà utilisées');
+  const id=createNew||!targetId?uid('ss'):targetId,entry={id,name,updatedAt:nowStamp(),state:clone({...state,saveSlotId:id,title:name})},idx=list.findIndex(x=>x.id===id);
+  if(idx>=0)list[idx]=entry;else list.push(entry);state.saveSlotId=id;state.title=name;setSavedSessions(list);persist();$('#saveChoicePanel').classList.add('hidden');renderSavedSessions();toast(idx>=0?'Sauvegarde écrasée':'Nouvel emplacement créé');
+}
 function loadSavedSession(id){const entry=getSavedSessions().find(x=>x.id===id);if(!entry)return;snapshot();state=normalize(clone(entry.state));state.saveSlotId=entry.builtInDemo?null:id;persist();closeHome();render();$('#sessionsDialog').close();toast(entry.builtInDemo?'Démo chargée — sauvegarde-la sous ton propre nom si tu veux la conserver':state.sessionStartedAt?'Partie reprise':'Préparation chargée')}
-function deleteSavedSession(id){if(!confirm('Supprimer cette session sauvegardée ?'))return;setSavedSessions(getSavedSessions().filter(x=>x.id!==id));if(state.saveSlotId===id)state.saveSlotId=null;persist();renderSavedSessions()}
+function deleteSavedSession(id){if(!confirm('Supprimer cette session sauvegardée ?'))return;setSavedSessions(getSavedSessions().filter(x=>x.id!==id));if(state.saveSlotId===id)state.saveSlotId=null;persist();$('#saveChoicePanel').classList.add('hidden');renderSavedSessions()}
 function launchSession(){const first=!state.sessionStartedAt;createBackup(first?'Début de session':'Reprise de session');commit(()=>{state.sessionStartedAt=state.sessionStartedAt||nowStamp();state.lastAutoBackupAt=Date.now();state.view='table';if(first)state.players.forEach(p=>p.spotlightCount=0)},first?'Session prête à jouer':'Session reprise');switchView('table')}
 
 function isDemoState(s){return !s?.saveSlotId&&String(s?.title||'').startsWith('Démo ·')}
@@ -384,8 +433,9 @@ function resumeFromHome(){
 }
 function archiveCurrentForSafety(){
   if(!hasMeaningfulState(state)||state.saveSlotId)return;
-  const list=getSavedSessions(),id=uid('ss'),name=state.title||'Session sans titre';
-  list.unshift({id,name,updatedAt:nowStamp(),state:clone({...state,saveSlotId:id})});setSavedSessions(list);
+  const list=getSavedSessions(),users=list.filter(x=>!x.builtInDemo),name=state.title||'Session sans titre';
+  if(users.length>=MAX_SAVED_SESSIONS){createBackup('Sécurité avant changement de session');return}
+  const id=uid('ss');list.push({id,name,updatedAt:nowStamp(),state:clone({...state,saveSlotId:id})});setSavedSessions(list);
 }
 function createNewSession(name){archiveCurrentForSafety();snapshot();state=normalize(EMPTY());state.title=(name||'').trim()||'Nouvelle session';state.view='prep';persist();closeHome();render();toast('Nouvelle session créée')}
 function safeFileName(value){return String(value||'session').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9-_]+/g,'-').replace(/^-+|-+$/g,'').slice(0,70)||'session'}
@@ -402,11 +452,23 @@ async function importSessionFile(file){
   archiveCurrentForSafety();snapshot();state=normalize(clone(incoming));state.saveSlotId=null;persist();closeHome();render();toast('Sauvegarde importée');
 }
 
+function openComponentImport(kind){if(kind==='npc')$('#npcImportFile').click();else if(kind==='location')$('#locationImportFile').click()}
+function parseNpcImport(parsed){
+  const raw=Array.isArray(parsed)?parsed:Array.isArray(parsed?.npcs)?parsed.npcs:parsed?.npc?[parsed.npc]:(parsed&&typeof parsed==='object'&&parsed.name?[parsed]:[]);
+  return raw.map(n=>({id:uid('n'),name:String(n?.name||'').trim(),role:String(n?.role||'').trim(),identity:String(n?.identity||'').trim(),wants:String(n?.wants||'').trim(),fears:String(n?.fears||'').trim(),knows:String(n?.knows||'').trim(),hides:String(n?.hides||'').trim(),trait:String(n?.trait||'').trim()})).filter(n=>n.name);
+}
+function parseLocationImport(parsed){
+  const raw=Array.isArray(parsed)?parsed:Array.isArray(parsed?.locations)?parsed.locations:parsed?.location?[parsed.location]:(parsed&&typeof parsed==='object'&&parsed.name?[parsed]:[]);
+  return raw.map(l=>({id:uid('l'),name:String(l?.name||'').trim(),tier:l?.tier==='reserve'?'reserve':'main',status:'unvisited',concept:String(l?.concept||'').trim(),visuals:Array.isArray(l?.visuals)?l.visuals.map(x=>String(x).trim()).filter(Boolean):lines(l?.visuals),impulse:String(l?.impulse||'').trim(),situation:String(l?.situation||'').trim(),faction:String(l?.faction||'').trim(),localPlot:String(l?.localPlot||'').trim(),regionalPlot:String(l?.regionalPlot||'').trim(),mainPlot:String(l?.mainPlot||'').trim(),danger:String(l?.danger||'').trim(),reward:String(l?.reward||'').trim(),ifIgnored:String(l?.ifIgnored||'').trim(),npcIds:[]})).filter(l=>l.name);
+}
+async function importNpcFile(file){const parsed=JSON.parse(await file.text()),items=parseNpcImport(parsed);if(!items.length)throw new Error('Aucun PNJ valide');commit(()=>{state.npcs.push(...items);state.libraryTab='npcs'},`${items.length} PNJ importé${items.length>1?'s':''}`);if($('#npcDialog')?.open)$('#npcDialog').close();if(state.view==='library')renderLibrary()}
+async function importLocationFile(file){const parsed=JSON.parse(await file.text()),items=parseLocationImport(parsed);if(!items.length)throw new Error('Aucun lieu valide');commit(()=>{state.locations.push(...items);state.previewLocationId=items[0].id;state.libraryTab='locations'},`${items.length} lieu${items.length>1?'x':''} importé${items.length>1?'s':''}`);if($('#locationDialog')?.open)$('#locationDialog').close();if(state.view==='library')renderLibrary()}
+
 function openSearch(){const input=$('#searchInput');input.value='';$('#searchResults').innerHTML='<div class="empty-mini">Recherche lieux, PNJ, secrets et journal.</div>';$('#searchDialog').showModal();setTimeout(()=>input.focus(),50)}
 function runSearch(q){q=q.trim().toLowerCase();if(!q){$('#searchResults').innerHTML='<div class="empty-mini">Commence à taper…</div>';return}const results=[];state.locations.forEach(x=>{if(`${x.name} ${x.concept} ${x.situation}`.toLowerCase().includes(q))results.push({type:'Lieu',title:x.name,text:x.situation,action:`location:${x.id}`})});state.npcs.forEach(x=>{if(`${x.name} ${x.role} ${x.identity} ${x.wants} ${x.knows}`.toLowerCase().includes(q))results.push({type:'PNJ',title:x.name,text:x.role,action:`npc:${x.id}`})});state.secrets.forEach(x=>{if(`${x.title} ${x.text}`.toLowerCase().includes(q))results.push({type:'Secret',title:x.title,text:x.text,action:'library:secrets'})});state.journal.forEach(x=>{if(x.text.toLowerCase().includes(q))results.push({type:'Journal',title:locationName(x.locationId),text:x.text,action:'journal'})});$('#searchResults').innerHTML=results.slice(0,30).map(r=>`<button class="search-result" data-search-action="${r.action}"><span class="eyebrow">${r.type}</span><strong>${esc(r.title)}</strong><small>${esc(r.text||'')}</small></button>`).join('')||'<div class="empty-mini">Aucun résultat.</div>';$$('[data-search-action]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.searchAction.split(':');$('#searchDialog').close();if(type==='location'){state.previewLocationId=id;switchView('table');renderTable()}else if(type==='npc')showNpcSheet(id);else if(type==='library'){state.libraryTab=id;switchView('library');renderLibrary()}else switchView('journal')})}
 
 // Navigation and global controls
-$$('.nav-btn[data-view]').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$('#sessionTitle').onchange=e=>commit(()=>state.title=e.target.value.trim()||'Session sans titre',null);$('#btnHome').onclick=showHome;$('#btnHome').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showHome()}};$('#btnHomeResume').onclick=resumeFromHome;$('#btnHomeNew').onclick=()=>{const f=$('#newSessionForm');f.reset();f.elements.name.value='';$('#newSessionDialog').showModal();setTimeout(()=>f.elements.name.focus(),30)};$('#btnHomeImport').onclick=()=>$('#importFile').click();$('#btnHomeSessions').onclick=openSessions;$('#btnUndo').onclick=()=>{const prev=history.pop();if(!prev)return toast('Rien à annuler');state=normalize(JSON.parse(prev));persist();render();toast('Modification annulée')};$('#btnMore').onclick=e=>{e.stopPropagation();$('#moreMenu').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('#moreMenu')&&!e.target.closest('#btnMore'))$('#moreMenu').classList.add('hidden')});$('#btnSearch').onclick=openSearch;$('#searchInput').oninput=e=>runSearch(e.target.value);$('#btnLaunchSession').onclick=launchSession;$('#btnSessions').onclick=openSessions;$('#btnBackups').onclick=openBackups;$('#btnQuickNote').onclick=openQuickNote;$('#btnPlayStrongStart').onclick=playStrongStart;$('#btnSaveSession').onclick=saveCurrentSession;
+$$('.nav-btn[data-view]').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$('#sessionTitle').onchange=e=>commit(()=>state.title=e.target.value.trim()||'Session sans titre',null);$('#btnHome').onclick=showHome;$('#btnHome').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showHome()}};$('#btnHomeResume').onclick=resumeFromHome;$('#btnHomeNew').onclick=()=>{const f=$('#newSessionForm');f.reset();f.elements.name.value='';$('#newSessionDialog').showModal();setTimeout(()=>f.elements.name.focus(),30)};$('#btnHomeImport').onclick=()=>$('#importFile').click();$('#btnHomeSessions').onclick=openSessions;$('#btnUndo').onclick=()=>{const prev=history.pop();if(!prev)return toast('Rien à annuler');state=normalize(JSON.parse(prev));persist();render();toast('Modification annulée')};$('#btnMore').onclick=e=>{e.stopPropagation();$('#moreMenu').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('#moreMenu')&&!e.target.closest('#btnMore'))$('#moreMenu').classList.add('hidden')});$('#btnSearch').onclick=openSearch;$('#searchInput').oninput=e=>runSearch(e.target.value);$('#btnLaunchSession').onclick=launchSession;$('#btnSessions').onclick=openSessions;$('#btnBackups').onclick=openBackups;$('#btnQuickNote').onclick=openQuickNote;$('#btnPlayStrongStart').onclick=playStrongStart;$('#btnSaveSession').onclick=openSaveChoices;$('#sessionStartFx').onclick=hideSessionStartFx;
 $$('.context-tab').forEach(b=>b.onclick=()=>{state.contextTab=b.dataset.context;revealPendingId=null;persist();renderContextPanel()});
 
 // Prep controls
@@ -425,9 +487,11 @@ $('#genericForm').onsubmit=e=>{e.preventDefault();const def=genericDefs[genericC
 $('#newSessionForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);$('#newSessionDialog').close();createNewSession(String(f.get('name')||''))};
 $('#quickNoteForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),text=String(f.get('text')||'').trim(),type=f.get('type');if(!text)return;commit(()=>state.journal.unshift({id:uid('j'),type,text,locationId:state.activeLocationId,createdAt:nowStamp()}),'Note ajoutée');e.target.reset();renderQuickNoteHistory();setTimeout(()=>e.target.elements.text.focus(),30)};
 
-$$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;persist();renderLibrary()});$('#btnClearJournal').onclick=()=>{if(confirm('Effacer le journal ?'))commit(()=>state.journal=[],'Journal effacé')};$('#btnQuickAdd').onclick=()=>$('#quickAddDialog').showModal();$$('[data-quick-create]').forEach(b=>b.onclick=()=>{const type=b.dataset.quickCreate;$('#quickAddDialog').close();if(type==='location')openLocationEditor();else if(type==='npc')openNpcEditor();else if(type==='note')openQuickNote();else openGenericEditor(type)});
+$$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;persist();renderLibrary()});$('#btnClearJournal').onclick=()=>{if(confirm('Effacer le journal ?'))commit(()=>state.journal=[],'Journal effacé')};$('#btnImportNpcFromEditor').onclick=()=>openComponentImport('npc');$('#btnImportLocationFromEditor').onclick=()=>openComponentImport('location');
+$('#npcImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importNpcFile(file)}catch(err){console.error(err);toast('Fichier PNJ incompatible')}e.target.value=''};
+$('#locationImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importLocationFile(file)}catch(err){console.error(err);toast('Fichier lieu incompatible')}e.target.value=''};
 $('#btnExport').onclick=exportSession;$('#btnImport').onclick=()=>$('#importFile').click();$('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnResetDemo').onclick=()=>{if(confirm('Restaurer la démonstration ?')){snapshot();state=normalize(clone(DEMO));persist();render();toast('Démo restaurée')}};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.1.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.4.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();

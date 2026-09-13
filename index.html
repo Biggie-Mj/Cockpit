@@ -7,18 +7,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Cockpit">
-  <title>Cockpit V1.3 — Préparation D&D 5e</title>
-  <link rel="manifest" href="manifest.webmanifest?v=1.3.0">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.3.0">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1.3.0">
-  <link rel="stylesheet" href="styles.css?v=1.3.0">
+  <title>Cockpit V1.4 — Préparation D&D 5e</title>
+  <link rel="manifest" href="manifest.webmanifest?v=1.4.0">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1.4.0">
+  <link rel="stylesheet" href="styles.css?v=1.4.0">
 </head>
 <body>
 
   <main id="homeView" class="home-screen">
     <div class="home-shade"></div>
     <section class="home-panel" aria-label="Menu principal Cockpit">
-      <div class="home-brand-row"><img src="icon-192.png?v=1.3.0" alt=""><div><span class="eyebrow">COCKPIT · V1.3</span><h1>Préparez. Pilotez. Improvisez.</h1></div></div>
+      <div class="home-brand-row"><img src="icon-192.png?v=1.4.0" alt=""><div><span class="eyebrow">COCKPIT · V1.4</span><h1>Préparez. Pilotez. Improvisez.</h1></div></div>
       <p class="home-copy">Votre console de préparation et de suivi de session D&amp;D 5e, pensée pour l’iPad.</p>
       <div class="home-actions">
         <button id="btnHomeResume" class="home-primary"><span>Reprendre la dernière session</span><small id="homeResumeTitle">Aucune session en cours</small></button>
@@ -33,7 +33,7 @@
   <div id="sheetScrim" class="sheet-scrim hidden"></div>
 
   <header class="topbar">
-    <div id="btnHome" class="brand" role="button" tabindex="0" title="Menu principal"><div class="brand-mark"><img src="icon-64.png?v=1.3.0" alt=""></div><div><h1>COCKPIT</h1><p>SLY FLOURISH · V1.3</p></div></div>
+    <div id="btnHome" class="brand" role="button" tabindex="0" title="Menu principal"><div class="brand-mark"><img src="icon-64.png?v=1.4.0" alt=""></div><div><h1>COCKPIT</h1><p>SLY FLOURISH · V1.4</p></div></div>
     <div class="session-title-wrap"><span class="eyebrow">SESSION</span><input id="sessionTitle" class="session-title" aria-label="Titre de la session"></div>
     <div class="top-actions">
       <button id="btnSearch" class="ghost icon-only" title="Rechercher">⌕</button>
@@ -97,7 +97,7 @@
     </aside>
   </main>
 
-  <main id="libraryView" class="view-shell library-shell hidden"><section class="library-panel panel"><div class="library-tabs"><button class="library-tab active" data-library="secrets">Secrets</button><button class="library-tab" data-library="npcs">PNJ</button><button class="library-tab" data-library="threats">Menaces</button><button class="library-tab" data-library="situations">Situations</button><button class="library-tab" data-library="rewards">Récompenses</button><button class="library-tab" data-library="blanks">Blancs</button></div><div id="libraryContent" class="library-content"></div></section></main>
+  <main id="libraryView" class="view-shell library-shell hidden"><section class="library-panel panel"><div class="library-tabs"><button class="library-tab active" data-library="secrets">Secrets</button><button class="library-tab" data-library="npcs">PNJ</button><button class="library-tab" data-library="locations">Lieux</button><button class="library-tab" data-library="threats">Menaces</button><button class="library-tab" data-library="situations">Situations</button><button class="library-tab" data-library="rewards">Récompenses</button><button class="library-tab" data-library="blanks">Blancs</button></div><div id="libraryContent" class="library-content"></div></section></main>
   <main id="journalView" class="view-shell journal-shell hidden"><section class="journal-panel panel"><div class="panel-head"><div><span class="eyebrow">CE QUI EST DEVENU VRAI</span><h2>Journal de session</h2></div><button id="btnClearJournal" class="ghost">Effacer</button></div><div id="journalContent" class="journal-content"></div></section></main>
 
   <nav class="bottom-nav" aria-label="Navigation principale">
@@ -106,13 +106,12 @@
     <button class="nav-btn" data-view="library"><span>◆</span><b>COMPOSANTS</b></button>
     <button class="nav-btn" data-view="journal"><span>≡</span><b>JOURNAL</b></button>
     <button id="btnQuickNote" class="nav-btn note-nav"><span>📝</span><b>NOTE</b></button>
-    <button id="btnQuickAdd" class="nav-btn add-nav"><span>＋</span><b>AJOUTER</b></button>
   </nav>
 
   <aside id="npcSheet" class="npc-sheet"><button id="btnCloseNpcSheet" class="sheet-close">×</button><div id="npcSheetContent"></div></aside>
 
   <dialog id="locationDialog" class="modal wide-modal"><form id="locationForm">
-    <div class="modal-head"><div><span class="eyebrow">LIEU VIVANT</span><h2 id="locationDialogTitle">Lieu</h2><p id="locationEditorHint" class="dialog-hint"></p></div><button type="button" class="icon-btn" data-close="locationDialog">×</button></div>
+    <div class="modal-head"><div><span class="eyebrow">LIEU VIVANT</span><h2 id="locationDialogTitle">Lieu</h2><p id="locationEditorHint" class="dialog-hint"></p></div><div class="modal-head-actions"><button type="button" id="btnImportLocationFromEditor" class="ghost import-head-btn">⇩ Importer un lieu</button><button type="button" class="icon-btn" data-close="locationDialog">×</button></div></div>
     <div class="form-grid three location-essential">
       <label class="span2">Nom<input name="name" required></label><label>Type<select name="tier"><option value="main">Principal</option><option value="reserve">Réserve</option></select></label>
       <label class="span3">Concept<input name="concept" placeholder="Une phrase"></label><label class="span3">Situation actuelle<textarea name="situation" rows="3"></textarea></label>
@@ -125,7 +124,7 @@
     <div class="modal-actions"><button type="button" id="btnDeleteLocation" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="locationDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
   </form></dialog>
 
-  <dialog id="npcDialog" class="modal"><form id="npcForm"><div class="modal-head"><div><span class="eyebrow">PNJ MOTEUR</span><h2 id="npcDialogTitle">PNJ</h2></div><button type="button" class="icon-btn" data-close="npcDialog">×</button></div><div class="form-grid"><label>Nom<input name="name" required></label><label>Rôle / sous-titre<input name="role"></label><label class="span2">Identité<input name="identity"></label><label>Veut<textarea name="wants" rows="3"></textarea></label><label>Craint<textarea name="fears" rows="3"></textarea></label><label>Sait<textarea name="knows" rows="3"></textarea></label><label>Cache<textarea name="hides" rows="3"></textarea></label><label class="span2">Trait de jeu<textarea name="trait" rows="3"></textarea></label></div><div class="modal-actions"><button type="button" id="btnDeleteNpc" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="npcDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
+  <dialog id="npcDialog" class="modal"><form id="npcForm"><div class="modal-head"><div><span class="eyebrow">PNJ MOTEUR</span><h2 id="npcDialogTitle">PNJ</h2></div><div class="modal-head-actions"><button type="button" id="btnImportNpcFromEditor" class="ghost import-head-btn">⇩ Importer un PNJ</button><button type="button" class="icon-btn" data-close="npcDialog">×</button></div></div><div class="form-grid"><label>Nom<input name="name" required></label><label>Rôle / sous-titre<input name="role"></label><label class="span2">Identité<input name="identity"></label><label>Veut<textarea name="wants" rows="3"></textarea></label><label>Craint<textarea name="fears" rows="3"></textarea></label><label>Sait<textarea name="knows" rows="3"></textarea></label><label>Cache<textarea name="hides" rows="3"></textarea></label><label class="span2">Trait de jeu<textarea name="trait" rows="3"></textarea></label></div><div class="modal-actions"><button type="button" id="btnDeleteNpc" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="npcDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
 
   <dialog id="threadDialog" class="modal"><form id="threadForm"><div class="modal-head"><div><span class="eyebrow">FIL ROUGE</span><h2>Direction du monde</h2></div><button type="button" class="icon-btn" data-close="threadDialog">×</button></div><div class="form-grid"><label class="span2">Que cherche la force active ?<textarea name="goal" rows="4"></textarea></label><label class="span2">Si les PJ ne font rien <small>Une ligne = une étape logique</small><textarea name="steps" rows="6"></textarea></label></div><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="threadDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
   <dialog id="strongDialog" class="modal"><form id="strongForm"><div class="modal-head"><div><span class="eyebrow">STRONG START</span><h2>Démarrer en mouvement</h2></div><button type="button" class="icon-btn" data-close="strongDialog">×</button></div><label class="solo-label">Situation initiale<textarea name="text" rows="8"></textarea></label><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="strongDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
@@ -148,6 +147,8 @@
   <dialog id="sessionsDialog" class="modal wide-modal">
     <div class="modal-head"><div><span class="eyebrow">SESSIONS</span><h2>Préparations et parties sauvegardées</h2><p class="dialog-hint">Une session « en cours » conserve exactement son état pour être reprise plus tard.</p></div><button type="button" class="icon-btn" data-close="sessionsDialog">×</button></div>
     <div class="session-save-bar"><input id="sessionSaveName" placeholder="Nom de la session"><button id="btnSaveSession" class="primary">💾 Sauvegarder l’état actuel</button></div>
+    <div class="session-slots-meta"><span id="sessionSlotCount">0 / 15 sauvegardes</span><small>15 emplacements maximum · seuls les emplacements utilisés sont affichés</small></div>
+    <div id="saveChoicePanel" class="save-choice-panel hidden"></div>
     <div id="savedSessionsList" class="saved-session-list"></div>
   </dialog>
 
@@ -155,7 +156,6 @@
   <dialog id="injectDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">RYTHME</span><h2>Injecter dans la partie</h2></div><button type="button" class="icon-btn" data-close="injectDialog">×</button></div><div id="injectContent" class="inject-content"></div></dialog>
   <dialog id="backupsDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">SÉCURITÉ</span><h2>Backups locaux</h2></div><button type="button" class="icon-btn" data-close="backupsDialog">×</button></div><div id="backupList" class="backup-list"></div></dialog>
   <dialog id="searchDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">RECHERCHE</span><h2>Retrouver rapidement</h2></div><button type="button" class="icon-btn" data-close="searchDialog">×</button></div><div class="search-box"><input id="searchInput" type="search" placeholder="Lieu, PNJ, secret, note…"><div id="searchResults" class="search-results"></div></div></dialog>
-  <dialog id="quickAddDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">AJOUTER</span><h2>Créer un composant</h2></div><button type="button" class="icon-btn" data-close="quickAddDialog">×</button></div><div class="quick-add-grid"><button data-quick-create="location">◈<strong>Lieu</strong></button><button data-quick-create="npc">♟<strong>PNJ</strong></button><button data-quick-create="secret">◆<strong>Secret</strong></button><button data-quick-create="threat">⚠<strong>Menace</strong></button><button data-quick-create="situation">✦<strong>Situation</strong></button><button data-quick-create="reward">🎁<strong>Récompense</strong></button><button data-quick-create="blank">?<strong>Blanc</strong></button><button data-quick-create="note">📝<strong>Note</strong></button></div></dialog>
 
 
   <dialog id="newSessionDialog" class="modal compact-modal"><form id="newSessionForm"><div class="modal-head"><div><span class="eyebrow">NOUVELLE SESSION</span><h2>Créer une préparation</h2><p class="dialog-hint">La session actuellement ouverte sera conservée automatiquement dans les sessions sauvegardées.</p></div><button type="button" class="icon-btn" data-close="newSessionDialog">×</button></div><label class="solo-label">Nom de la session<input name="name" autocomplete="off" placeholder="Ex. Le village qui oubliait"></label><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="newSessionDialog">Annuler</button><button type="submit" class="primary">Créer</button></div></form></dialog>
@@ -163,6 +163,8 @@
   <div id="sessionStartFx" class="session-start-fx" aria-hidden="true"><div class="fx-ring"></div><div class="fx-ring second"></div><strong>LA SESSION COMMENCE</strong><span>Que faites-vous ?</span></div>
 
   <input id="importFile" type="file" accept=".cockpit,.json,application/json" hidden>
-  <script src="app.js?v=1.3.0"></script>
+  <input id="npcImportFile" type="file" accept=".json,application/json" hidden>
+  <input id="locationImportFile" type="file" accept=".json,application/json" hidden>
+  <script src="app.js?v=1.4.0"></script>
 </body>
 </html>

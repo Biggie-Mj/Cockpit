@@ -1,31 +1,26 @@
-# Cockpit V1.1 — package GitHub Pages « root-safe »
+# Cockpit V1.4 — package GitHub Pages root-safe
 
-Cette variante est volontairement **sans sous-dossiers**. Tous les fichiers, images et icônes doivent être placés directement à la racine du dépôt GitHub Pages, comme dans l’application ENCOUNTER/Table-new-test qui fonctionne déjà.
+Version conçue pour être déposée directement à la racine du dépôt GitHub Pages.
 
-## Pourquoi
-Sur iPad, le téléversement via GitHub avait aplati les dossiers `assets/` et `icons/` : les images existaient bien dans le dépôt, mais `index.html`, `styles.css`, le manifeste et le service worker continuaient à chercher `icons/...` et `assets/...`. Les URLs aboutissaient donc à des 404.
+## V1.4
 
-Le service worker V1 utilisait aussi `cache.addAll()`. Une seule ressource 404 suffisait à faire échouer toute son installation, laissant potentiellement l’ancien service worker actif.
+- Spotlights : retard calculé par rapport au joueur le plus servi ; orange à partir de 2, rouge à partir de 5.
+- Menaces et situations : une injection peut être annulée depuis COMPOSANTS pour rendre l’élément disponible à nouveau.
+- FX Strong Start : reste affiché environ 5,5 secondes et peut être fermé immédiatement en touchant l’écran.
+- Sessions : 15 emplacements utilisateur maximum (la démo ne consomme pas d’emplacement). Le bouton de sauvegarde propose de mettre à jour l’emplacement courant, créer un nouvel emplacement ou écraser une sauvegarde existante.
+- AJOUTER retiré de la navigation : les créations sont maintenant intégrées à chaque onglet de COMPOSANTS.
+- PNJ : création et import JSON depuis Fichiers, avec prise en charge d’un ou plusieurs PNJ dans le même fichier.
+- Lieux : nouvel onglet COMPOSANTS, création et import JSON depuis Fichiers. Le bouton d’import est aussi présent en haut de l’éditeur ouvert par + Lieu.
+- Maintien des correctifs iPadOS V1.2/V1.3 : viewport standalone, safe areas, barre d’état et bandeau supérieur.
 
-## Déploiement
-Téléverser **tous les fichiers de ce dossier directement à la racine du dépôt** (au même niveau que `index.html`). Ne créer aucun dossier `assets` ou `icons`.
+## Formats d’import
 
-Après mise en ligne :
-1. Attendre la fin du déploiement GitHub Pages.
-2. Fermer complètement l’ancienne web app sur l’iPad puis la rouvrir.
-3. Si l’icône iOS reste l’ancienne, supprimer le raccourci de l’écran d’accueil puis refaire « Ajouter à l’écran d’accueil » : iOS met l’icône en cache séparément.
+PNJ : `{ "format":"cockpit-npcs", "formatVersion":1, "npcs":[ ... ] }`
 
-Les données de session restent dans le stockage local du navigateur, indépendamment de ces fichiers statiques.
+Champs PNJ : `name`, `role`, `identity`, `wants`, `fears`, `knows`, `hides`, `trait`.
 
+Lieux : `{ "format":"cockpit-locations", "formatVersion":1, "locations":[ ... ] }`
 
-## V1.2 — correctif iPadOS standalone
-- correction de la bande blanche inférieure observée dans la web app iPadOS ;
-- utilisation de `100vh` uniquement en mode `display-mode: standalone` afin de contourner un bug WebKit des hauteurs dynamiques avec `viewport-fit=cover` ;
-- fond racine forcé en sombre pour empêcher le canvas WebKit de peindre du blanc autour de la zone sûre ;
-- barre de navigation dimensionnée avec `safe-area-inset-bottom` ;
-- `black-translucent` remplacé par `black` pour éviter les anomalies de viewport signalées en mode web app ;
-- cache PWA versionné `cockpit-v1-2-ipados-safe`.
+Champs lieu : `name`, `tier`, `concept`, `visuals`, `impulse`, `situation`, `faction`, `localPlot`, `regionalPlot`, `mainPlot`, `danger`, `reward`, `ifIgnored`.
 
-
-## V1.3 — iPadOS status bar
-Le bandeau supérieur tient désormais compte de `safe-area-inset-top` et ajoute 6 px de respiration en mode web app installée. Le ruban joueurs, la vue principale, les menus flottants et les notifications suivent automatiquement ce nouveau décalage.
+L’application accepte aussi un objet unique ou un tableau JSON brut pour ces deux imports. Les identifiants internes sont recréés à l’import.
