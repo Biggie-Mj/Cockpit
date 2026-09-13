@@ -429,5 +429,5 @@ $$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;
 $('#btnExport').onclick=exportSession;$('#btnImport').onclick=()=>$('#importFile').click();$('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnResetDemo').onclick=()=>{if(confirm('Restaurer la démonstration ?')){snapshot();state=normalize(clone(DEMO));persist();render();toast('Démo restaurée')}};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.0.1');await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.1.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();

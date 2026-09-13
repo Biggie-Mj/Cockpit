@@ -1,29 +1,18 @@
-# Cockpit V1 — Préparation D&D 5e
+# Cockpit V1.1 — package GitHub Pages « root-safe »
 
-Console MJ optimisée pour iPad paysage, installable comme Web App et utilisable hors ligne.
+Cette variante est volontairement **sans sous-dossiers**. Tous les fichiers, images et icônes doivent être placés directement à la racine du dépôt GitHub Pages, comme dans l’application ENCOUNTER/Table-new-test qui fonctionne déjà.
 
-## V1
+## Pourquoi
+Sur iPad, le téléversement via GitHub avait aplati les dossiers `assets/` et `icons/` : les images existaient bien dans le dépôt, mais `index.html`, `styles.css`, le manifeste et le service worker continuaient à chercher `icons/...` et `assets/...`. Les URLs aboutissaient donc à des 404.
 
-- Nouveau **menu principal** utilisant l’illustration de fond validée : reprise de la session active, nouvelle session, import depuis Fichiers et accès aux sessions sauvegardées.
-- **Logo Cockpit** validé utilisé dans l’interface, le manifeste PWA et l’icône iOS.
-- En mode **Table**, le bouton texte « Modifier » du lieu devient une icône crayon SVG.
-- Le terme **Situations** remplace **Munitions** dans l’ajout et la préparation.
-- **Composants** contient désormais l’onglet **Situations** entre Menaces et Récompenses, synchronisé avec les situations de Table.
-- PWA renforcée : assets, fond et icônes sont préchargés dans le Service Worker et restent disponibles hors ligne après installation.
-- Export d’une session complète au format `.cockpit`. Sur iPad, le partage natif permet notamment **Enregistrer dans Fichiers** lorsqu’il est disponible ; un téléchargement classique sert de repli.
-- Import des fichiers `.cockpit` et compatibilité avec les anciens exports JSON.
-- Migration automatique des données locales V0.5/V0.4/V0.3/V0.2 vers V1.
+Le service worker V1 utilisait aussi `cache.addAll()`. Une seule ressource 404 suffisait à faire échouer toute son installation, laissant potentiellement l’ancien service worker actif.
 
-## Installation / déploiement
+## Déploiement
+Téléverser **tous les fichiers de ce dossier directement à la racine du dépôt** (au même niveau que `index.html`). Ne créer aucun dossier `assets` ou `icons`.
 
-Déposer le contenu du dossier `dm-cockpit/` dans `Table-new-test/dm-cockpit/`.
+Après mise en ligne :
+1. Attendre la fin du déploiement GitHub Pages.
+2. Fermer complètement l’ancienne web app sur l’iPad puis la rouvrir.
+3. Si l’icône iOS reste l’ancienne, supprimer le raccourci de l’écran d’accueil puis refaire « Ajouter à l’écran d’accueil » : iOS met l’icône en cache séparément.
 
-Adresse GitHub Pages historique :
-
-`https://biggie-mj.github.io/Table-new-test/dm-cockpit/`
-
-Sur iPad : ouvrir l’adresse dans Safari, puis **Partager → Sur l’écran d’accueil**. Après un premier chargement en ligne, Cockpit V1 peut être relancé hors ligne.
-
-
-## Correctif illustrations V1
-Les deux illustrations fournies sont embarquées localement dans `assets/` et les icônes dans `icons/`. Les chemins sont versionnés et le cache hors ligne a été incrémenté afin d'empêcher une ancienne PWA d'afficher les visuels de la version précédente.
+Les données de session restent dans le stockage local du navigateur, indépendamment de ces fichiers statiques.
