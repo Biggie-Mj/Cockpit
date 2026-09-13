@@ -2,36 +2,30 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b0908">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DM COCKPIT">
-  <title>DM COCKPIT V0.2 — Sly Flourish</title>
+  <title>DM COCKPIT V0.3 — Sly Flourish</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
+  <div id="sheetScrim" class="sheet-scrim hidden"></div>
 
   <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark">✦</div>
-      <div><h1>DM COCKPIT</h1><p>SLY FLOURISH · V0.2</p></div>
-    </div>
-    <div class="session-title-wrap">
-      <span class="eyebrow">SESSION</span>
-      <input id="sessionTitle" class="session-title" aria-label="Titre de la session">
-    </div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1>DM COCKPIT</h1><p>SLY FLOURISH · V0.3</p></div></div>
+    <div class="session-title-wrap"><span class="eyebrow">SESSION</span><input id="sessionTitle" class="session-title" aria-label="Titre de la session"></div>
     <div class="top-actions">
-      <div class="mode-switch" aria-label="Mode d'utilisation">
-        <button id="btnModePrep" class="mode-btn active">Préparation</button>
-        <button id="btnModeTable" class="mode-btn">Table</button>
-      </div>
+      <button id="btnSearch" class="ghost icon-only" title="Rechercher">⌕</button>
+      <span id="saveStatus" class="save-status">✓ Sauvegardé</span>
       <button id="btnUndo" class="ghost" title="Annuler">↶</button>
       <button id="btnMore" class="ghost icon-only" title="Outils">•••</button>
     </div>
     <div id="moreMenu" class="more-menu hidden">
+      <button id="btnBackups">Backups</button>
       <button id="btnExport">Exporter JSON</button>
       <button id="btnImport">Importer JSON</button>
       <button id="btnResetDemo">Restaurer la démo</button>
@@ -42,240 +36,88 @@
   <section id="playerRibbon" class="player-ribbon"></section>
 
   <main id="prepView" class="view-shell prep-shell">
-    <section class="prep-grid">
-      <div class="prep-column prep-column-left">
-        <article class="prep-card filrouge-card">
-          <header class="card-head"><div><span class="eyebrow">DIRECTION DU MONDE</span><h2>Fil rouge</h2></div><button class="edit-btn" data-edit="thread">Modifier</button></header>
-          <div id="threadCard" class="card-body"></div>
-        </article>
-
-        <article class="prep-card strong-card">
-          <header class="card-head"><div><span class="eyebrow">DÉMARRAGE</span><h2>Strong Start</h2></div><button class="edit-btn" data-edit="strong">Modifier</button></header>
-          <div id="strongCard" class="card-body"></div>
-        </article>
+    <section class="prep-topline">
+      <div><span class="eyebrow">PRÉPARATION DE SESSION</span><h2>Une page. Des possibilités. Aucun chemin imposé.</h2></div>
+      <button id="btnLaunchSession" class="launch-btn">▶ Lancer la session</button>
+    </section>
+    <section class="prep-grid-v3">
+      <div class="prep-stack">
+        <article class="prep-card"><header class="card-head"><div><span class="eyebrow">DIRECTION DU MONDE</span><h2>Fil rouge</h2></div><button class="edit-btn" data-edit="thread">Modifier</button></header><div id="threadCard" class="card-body"></div></article>
+        <article class="prep-card"><header class="card-head"><div><span class="eyebrow">DÉMARRAGE</span><h2>Strong Start</h2></div><button class="edit-btn" data-edit="strong">Modifier</button></header><div id="strongCard" class="card-body"></div></article>
       </div>
-
-      <div class="prep-column prep-column-main">
-        <article class="prep-card locations-card grow-card">
-          <header class="card-head">
-            <div><span class="eyebrow">ESPACE DE JEU</span><h2>Lieux vivants</h2></div>
-            <button id="btnAddLocation" class="primary small">＋ Lieu</button>
-          </header>
-          <div id="prepLocations" class="location-board"></div>
-        </article>
+      <article class="prep-card locations-card"><header class="card-head"><div><span class="eyebrow">ESPACE DE JEU</span><h2>Lieux vivants</h2></div><button id="btnAddLocation" class="primary">＋ Lieu</button></header><div id="prepLocations" class="location-board"></div></article>
+      <div class="prep-stack">
+        <article class="prep-card"><header class="card-head"><div><span class="eyebrow">SI LE RYTHME TOMBE</span><h2>Munitions</h2></div><button class="primary" data-add="situation">＋</button></header><div id="situationsCard" class="ammo-list"></div></article>
+        <article class="prep-card"><header class="card-head"><div><span class="eyebrow">RESSOURCES</span><h2>Composants</h2></div></header><div id="prepResources" class="resource-summary-grid"></div></article>
       </div>
-
-      <div class="prep-column prep-column-right">
-        <article class="prep-card situations-card">
-          <header class="card-head"><div><span class="eyebrow">MUNITIONS MJ</span><h2>Situations potentielles</h2></div><button class="primary small" data-add="situation">＋</button></header>
-          <div id="situationsCard" class="compact-list"></div>
-        </article>
-
-        <article class="prep-card blanks-card">
-          <header class="card-head"><div><span class="eyebrow">LAISSER RESPIRER</span><h2>Blancs volontaires</h2></div><button class="primary small" data-add="blank">＋</button></header>
-          <div id="blanksCard" class="compact-list"></div>
-        </article>
-      </div>
-
-      <article class="prep-card wide-card secrets-card">
-        <header class="card-head"><div><span class="eyebrow">FILET DE SÉCURITÉ</span><h2>Secrets & indices flottants</h2></div><button class="primary small" data-add="secret">＋ Secret</button></header>
-        <div id="prepSecrets" class="secret-grid"></div>
-      </article>
-
-      <article class="prep-card resource-card">
-        <header class="card-head"><div><span class="eyebrow">MOTEURS DU MONDE</span><h2>PNJ</h2></div><button class="primary small" data-add="npc">＋</button></header>
-        <div id="prepNpcs" class="chip-grid"></div>
-      </article>
-
-      <article class="prep-card resource-card">
-        <header class="card-head"><div><span class="eyebrow">PRESSION</span><h2>Menaces</h2></div><button class="primary small" data-add="threat">＋</button></header>
-        <div id="prepThreats" class="compact-list"></div>
-      </article>
-
-      <article class="prep-card resource-card">
-        <header class="card-head"><div><span class="eyebrow">CE QUI COMPTE</span><h2>Récompenses</h2></div><button class="primary small" data-add="reward">＋</button></header>
-        <div id="prepRewards" class="compact-list"></div>
-      </article>
+      <article class="prep-card secrets-card-v3"><header class="card-head"><div><span class="eyebrow">FILET DE SÉCURITÉ</span><h2>Secrets & indices <span id="prepSecretCount" class="muted-count"></span></h2></div><button class="primary" data-add="secret">＋ Secret</button></header><div id="prepSecrets" class="prep-secret-grid"></div></article>
     </section>
   </main>
 
   <main id="tableView" class="view-shell table-shell hidden">
     <aside class="left-rail panel">
-      <div class="rail-section session-summary">
-        <span class="eyebrow">SESSION</span>
-        <button id="tableStrongStart" class="strong-start-mini"></button>
-      </div>
-      <div class="rail-section location-rail-section">
-        <div class="rail-title"><div><span class="eyebrow">OÙ SOMMES-NOUS ?</span><h2>Lieux</h2></div><button id="btnTableAddLocation" class="icon-btn">＋</button></div>
-        <div id="tableLocationList" class="table-location-list"></div>
-      </div>
-      <div class="rail-section ammunition-rail">
-        <div class="rail-title"><div><span class="eyebrow">SI LE RYTHME TOMBE</span><h2>Munitions</h2></div></div>
-        <div id="tableSituations" class="mini-ammo-list"></div>
-      </div>
+      <button id="tableStrongStart" class="table-strong-start"></button>
+      <div class="rail-title"><div><span class="eyebrow">OÙ SOMMES-NOUS ?</span><h2>Lieux</h2></div><button id="btnTableAddLocation" class="icon-btn">＋</button></div>
+      <div id="tableLocationList" class="table-location-list"></div>
+      <div class="rail-split"></div>
+      <div class="rail-title"><div><span class="eyebrow">SI LE RYTHME TOMBE</span><h2>Munitions</h2></div><button id="btnInject" class="ghost">⚡ Injecter</button></div>
+      <div id="tableSituations" class="ammo-list table-ammo"></div>
     </aside>
 
-    <section class="live-location panel">
-      <div id="liveLocationContent"></div>
-    </section>
+    <section class="live-location panel"><div id="liveLocationContent"></div></section>
 
     <aside class="right-rail panel">
-      <div class="right-scroll">
-        <section class="context-block">
-          <div class="context-title"><div><span class="eyebrow">ICI MAINTENANT</span><h2>PNJ présents</h2></div><button id="btnManageCurrentNpcs" class="ghost small">Gérer</button></div>
-          <div id="currentNpcCards" class="npc-mini-grid"></div>
-        </section>
-
-        <section class="context-block">
-          <div class="context-title"><div><span class="eyebrow">DISPONIBLES PARTOUT</span><h2>Secrets</h2></div><button id="btnOpenSecrets" class="ghost small">Tous</button></div>
-          <div id="floatingSecrets" class="floating-secret-list"></div>
-        </section>
-
-        <section class="context-block">
-          <div class="context-title"><div><span class="eyebrow">PRESSION POSSIBLE</span><h2>Menaces</h2></div></div>
-          <div id="tableThreats" class="mini-ammo-list"></div>
-        </section>
-
-        <section class="context-block">
-          <div class="context-title"><div><span class="eyebrow">SOUS LES YEUX</span><h2>Épinglés</h2></div><button id="btnAddPin" class="ghost small">＋</button></div>
-          <div id="pinnedList" class="pinned-list"></div>
-        </section>
-
-        <section class="context-block quick-note-block">
-          <div class="context-title"><div><span class="eyebrow">À LA VOLÉE</span><h2>Note rapide</h2></div></div>
-          <textarea id="quickNoteText" rows="3" placeholder="Ce qui devient vrai à la table…"></textarea>
-          <div class="quick-note-actions">
-            <select id="quickNoteType">
-              <option value="note">📝 Note</option>
-              <option value="decision">⚑ Décision</option>
-              <option value="quote">💬 Citation</option>
-              <option value="question">❓ Question</option>
-              <option value="death">💀 Mort</option>
-              <option value="loot">🎁 Butin</option>
-              <option value="lead">🔗 Piste</option>
-            </select>
-            <button id="btnAddQuickNote" class="primary">Ajouter</button>
-          </div>
-        </section>
+      <div class="context-tabs">
+        <button class="context-tab active" data-context="npcs"><span>PNJ</span><i>0</i></button>
+        <button class="context-tab" data-context="secrets"><span>Secrets</span><i>0</i></button>
+        <button class="context-tab" data-context="threats"><span>Menaces</span><i>0</i></button>
+        <button class="context-tab" data-context="pins"><span>Épinglés</span><i>0</i></button>
       </div>
+      <div id="contextContent" class="context-content"></div>
     </aside>
   </main>
 
-  <main id="libraryView" class="view-shell library-shell hidden">
-    <section class="library-panel panel">
-      <div class="library-tabs">
-        <button class="library-tab active" data-library="secrets">Secrets</button>
-        <button class="library-tab" data-library="npcs">PNJ</button>
-        <button class="library-tab" data-library="threats">Menaces</button>
-        <button class="library-tab" data-library="rewards">Récompenses</button>
-        <button class="library-tab" data-library="blanks">Blancs</button>
-      </div>
-      <div id="libraryContent" class="library-content"></div>
-    </section>
-  </main>
-
-  <main id="journalView" class="view-shell journal-shell hidden">
-    <section class="journal-panel panel">
-      <div class="panel-head"><div><span class="eyebrow">CE QUI EST DEVENU VRAI</span><h2>Journal de session</h2></div><button id="btnClearJournal" class="ghost small">Effacer</button></div>
-      <div id="journalContent" class="journal-content"></div>
-    </section>
-  </main>
+  <main id="libraryView" class="view-shell library-shell hidden"><section class="library-panel panel"><div class="library-tabs"><button class="library-tab active" data-library="secrets">Secrets</button><button class="library-tab" data-library="npcs">PNJ</button><button class="library-tab" data-library="threats">Menaces</button><button class="library-tab" data-library="rewards">Récompenses</button><button class="library-tab" data-library="blanks">Blancs</button></div><div id="libraryContent" class="library-content"></div></section></main>
+  <main id="journalView" class="view-shell journal-shell hidden"><section class="journal-panel panel"><div class="panel-head"><div><span class="eyebrow">CE QUI EST DEVENU VRAI</span><h2>Journal de session</h2></div><button id="btnClearJournal" class="ghost">Effacer</button></div><div id="journalContent" class="journal-content"></div></section></main>
 
   <nav class="bottom-nav" aria-label="Navigation principale">
-    <button class="nav-btn active" data-view="prep"><span>▦</span><b>PRÉPARATION</b></button>
+    <button class="nav-btn active" data-view="prep"><span>▦</span><b>PRÉPARER</b></button>
     <button class="nav-btn" data-view="table"><span>◈</span><b>TABLE</b></button>
     <button class="nav-btn" data-view="library"><span>◆</span><b>COMPOSANTS</b></button>
     <button class="nav-btn" data-view="journal"><span>≡</span><b>JOURNAL</b></button>
+    <button id="btnQuickNote" class="nav-btn note-nav"><span>📝</span><b>NOTE</b></button>
     <button id="btnQuickAdd" class="nav-btn add-nav"><span>＋</span><b>AJOUTER</b></button>
   </nav>
 
+  <aside id="npcSheet" class="npc-sheet"><button id="btnCloseNpcSheet" class="sheet-close">×</button><div id="npcSheetContent"></div></aside>
+
   <dialog id="locationDialog" class="modal wide-modal"><form id="locationForm">
-    <div class="modal-head"><div><span class="eyebrow">LIEU VIVANT</span><h2 id="locationDialogTitle">Lieu</h2></div><button type="button" class="icon-btn" data-close="locationDialog">×</button></div>
-    <div class="form-grid three">
-      <label class="span2">Nom<input name="name" required></label>
-      <label>Type<select name="tier"><option value="main">Principal</option><option value="reserve">Réserve</option></select></label>
-      <label class="span3">Concept<input name="concept" placeholder="Une phrase qui donne l'identité du lieu"></label>
-      <label class="span2">3 détails visibles <small>Une ligne = un détail</small><textarea name="visuals" rows="4"></textarea></label>
-      <label>Impulsion<textarea name="impulse" rows="4" placeholder="Ce que le lieu tend à faire"></textarea></label>
-      <label class="span2">Situation actuelle<textarea name="situation" rows="4"></textarea></label>
-      <label>Faction présente<input name="faction"></label>
-      <label>Intrigue locale<textarea name="localPlot" rows="3"></textarea></label>
-      <label>Intrigue régionale<textarea name="regionalPlot" rows="3"></textarea></label>
-      <label>Trace du fil rouge<textarea name="mainPlot" rows="3"></textarea></label>
-      <label>Danger<textarea name="danger" rows="3"></textarea></label>
-      <label>Chose intéressante à obtenir<textarea name="reward" rows="3"></textarea></label>
-      <label>Si les PJ ne font rien<textarea name="ifIgnored" rows="3"></textarea></label>
+    <div class="modal-head"><div><span class="eyebrow">LIEU VIVANT</span><h2 id="locationDialogTitle">Lieu</h2><p id="locationEditorHint" class="dialog-hint"></p></div><button type="button" class="icon-btn" data-close="locationDialog">×</button></div>
+    <div class="form-grid three location-essential">
+      <label class="span2">Nom<input name="name" required></label><label>Type<select name="tier"><option value="main">Principal</option><option value="reserve">Réserve</option></select></label>
+      <label class="span3">Concept<input name="concept" placeholder="Une phrase"></label><label class="span3">Situation actuelle<textarea name="situation" rows="3"></textarea></label>
+    </div>
+    <div id="mainLocationFields">
+      <div class="form-grid three"><label class="span2">3 détails visibles <small>Une ligne = un détail</small><textarea name="visuals" rows="4"></textarea></label><label>Impulsion<textarea name="impulse" rows="4"></textarea></label></div>
+      <details class="editor-details"><summary>Contexte — faction et intrigues</summary><div class="form-grid three"><label>Faction<input name="faction"></label><label>Intrigue locale<textarea name="localPlot" rows="3"></textarea></label><label>Intrigue régionale<textarea name="regionalPlot" rows="3"></textarea></label><label class="span3">Trace du fil rouge<textarea name="mainPlot" rows="3"></textarea></label></div></details>
+      <details class="editor-details"><summary>Jeu — danger, gain, conséquence</summary><div class="form-grid three"><label>Danger<textarea name="danger" rows="3"></textarea></label><label>À obtenir<textarea name="reward" rows="3"></textarea></label><label>Si les PJ ne font rien<textarea name="ifIgnored" rows="3"></textarea></label></div></details>
     </div>
     <div class="modal-actions"><button type="button" id="btnDeleteLocation" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="locationDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
   </form></dialog>
 
-  <dialog id="npcDialog" class="modal"><form id="npcForm">
-    <div class="modal-head"><div><span class="eyebrow">PNJ MOTEUR</span><h2 id="npcDialogTitle">PNJ</h2></div><button type="button" class="icon-btn" data-close="npcDialog">×</button></div>
-    <div class="form-grid">
-      <label>Nom<input name="name" required></label><label>Rôle / sous-titre<input name="role"></label>
-      <label class="span2">Identité<input name="identity"></label>
-      <label>Veut<textarea name="wants" rows="3"></textarea></label><label>Craint<textarea name="fears" rows="3"></textarea></label>
-      <label>Sait<textarea name="knows" rows="3"></textarea></label><label>Cache<textarea name="hides" rows="3"></textarea></label>
-      <label class="span2">Trait de jeu<textarea name="trait" rows="3"></textarea></label>
-    </div>
-    <div class="modal-actions"><button type="button" id="btnDeleteNpc" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="npcDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
-  </form></dialog>
+  <dialog id="npcDialog" class="modal"><form id="npcForm"><div class="modal-head"><div><span class="eyebrow">PNJ MOTEUR</span><h2 id="npcDialogTitle">PNJ</h2></div><button type="button" class="icon-btn" data-close="npcDialog">×</button></div><div class="form-grid"><label>Nom<input name="name" required></label><label>Rôle / sous-titre<input name="role"></label><label class="span2">Identité<input name="identity"></label><label>Veut<textarea name="wants" rows="3"></textarea></label><label>Craint<textarea name="fears" rows="3"></textarea></label><label>Sait<textarea name="knows" rows="3"></textarea></label><label>Cache<textarea name="hides" rows="3"></textarea></label><label class="span2">Trait de jeu<textarea name="trait" rows="3"></textarea></label></div><div class="modal-actions"><button type="button" id="btnDeleteNpc" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="npcDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
 
-  <dialog id="threadDialog" class="modal"><form id="threadForm">
-    <div class="modal-head"><div><span class="eyebrow">FIL ROUGE</span><h2>Direction du monde</h2></div><button type="button" class="icon-btn" data-close="threadDialog">×</button></div>
-    <div class="form-grid">
-      <label class="span2">Que cherche actuellement l'antagoniste / la force active ?<textarea name="goal" rows="4"></textarea></label>
-      <label class="span2">Si les PJ ne font rien <small>Une ligne = une étape logique, sans cadence automatique</small><textarea name="steps" rows="6"></textarea></label>
-    </div>
-    <div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="threadDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
-  </form></dialog>
+  <dialog id="threadDialog" class="modal"><form id="threadForm"><div class="modal-head"><div><span class="eyebrow">FIL ROUGE</span><h2>Direction du monde</h2></div><button type="button" class="icon-btn" data-close="threadDialog">×</button></div><div class="form-grid"><label class="span2">Que cherche la force active ?<textarea name="goal" rows="4"></textarea></label><label class="span2">Si les PJ ne font rien <small>Une ligne = une étape logique</small><textarea name="steps" rows="6"></textarea></label></div><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="threadDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
+  <dialog id="strongDialog" class="modal"><form id="strongForm"><div class="modal-head"><div><span class="eyebrow">STRONG START</span><h2>Démarrer en mouvement</h2></div><button type="button" class="icon-btn" data-close="strongDialog">×</button></div><label class="solo-label">Situation initiale<textarea name="text" rows="8"></textarea></label><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="strongDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
+  <dialog id="playersDialog" class="modal"><form id="playersForm"><div class="modal-head"><div><span class="eyebrow">PERSONNAGES</span><h2>Spotlights</h2></div><button type="button" class="icon-btn" data-close="playersDialog">×</button></div><div id="playersEditor" class="players-editor"></div><button type="button" id="btnAddPlayerRow" class="ghost dialog-inline-add">＋ Ajouter un personnage</button><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="playersDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
+  <dialog id="genericDialog" class="modal"><form id="genericForm"><div class="modal-head"><div><span id="genericEyebrow" class="eyebrow">COMPOSANT</span><h2 id="genericDialogTitle">Élément</h2></div><button type="button" class="icon-btn" data-close="genericDialog">×</button></div><div id="genericFields" class="form-grid"></div><div class="modal-actions"><button type="button" id="btnDeleteGeneric" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="genericDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
+  <dialog id="manageNpcsDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">LIEU ACTUEL</span><h2>Qui est ici ?</h2></div><button type="button" class="icon-btn" data-close="manageNpcsDialog">×</button></div><div id="manageNpcChecks" class="check-grid roomy"></div><div class="modal-actions"><span></span><span></span><button class="primary" data-close="manageNpcsDialog">Terminé</button></div></dialog>
 
-  <dialog id="strongDialog" class="modal"><form id="strongForm">
-    <div class="modal-head"><div><span class="eyebrow">STRONG START</span><h2>Démarrer en mouvement</h2></div><button type="button" class="icon-btn" data-close="strongDialog">×</button></div>
-    <label class="solo-label">Situation initiale<textarea name="text" rows="8" placeholder="Un paragraphe maximum. Puis : Que faites-vous ?"></textarea></label>
-    <div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="strongDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
-  </form></dialog>
-
-  <dialog id="playersDialog" class="modal"><form id="playersForm">
-    <div class="modal-head"><div><span class="eyebrow">PERSONNAGES</span><h2>Spotlights de session</h2></div><button type="button" class="icon-btn" data-close="playersDialog">×</button></div>
-    <p class="dialog-help">Un seul élément à mettre en valeur par personnage. Les lignes vides sont ignorées.</p>
-    <div id="playersEditor" class="players-editor"></div>
-    <button type="button" id="btnAddPlayerRow" class="ghost">＋ Ajouter un personnage</button>
-    <div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="playersDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
-  </form></dialog>
-
-  <dialog id="genericDialog" class="modal"><form id="genericForm">
-    <div class="modal-head"><div><span id="genericEyebrow" class="eyebrow">COMPOSANT</span><h2 id="genericDialogTitle">Élément</h2></div><button type="button" class="icon-btn" data-close="genericDialog">×</button></div>
-    <div id="genericFields" class="form-grid"></div>
-    <div class="modal-actions"><button type="button" id="btnDeleteGeneric" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="genericDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
-  </form></dialog>
-
-  <dialog id="manageNpcsDialog" class="modal compact-modal">
-    <div class="modal-head"><div><span class="eyebrow">LIEU ACTUEL</span><h2>Qui est ici ?</h2></div><button type="button" class="icon-btn" data-close="manageNpcsDialog">×</button></div>
-    <div id="manageNpcChecks" class="check-grid roomy"></div>
-    <div class="modal-actions"><span></span><span></span><button type="button" class="primary" data-close="manageNpcsDialog">Terminé</button></div>
-  </dialog>
-
-  <dialog id="revealSecretDialog" class="modal compact-modal"><form id="revealSecretForm">
-    <div class="modal-head"><div><span class="eyebrow">RÉVÉLER</span><h2 id="revealSecretTitle">Secret</h2></div><button type="button" class="icon-btn" data-close="revealSecretDialog">×</button></div>
-    <p id="revealSecretText" class="dialog-callout"></p>
-    <label class="solo-label">Comment est-il apparu ?<select name="method"><option value="Conversation">Conversation</option><option value="Observation">Observation</option><option value="Document">Document</option><option value="Cadavre / trace">Cadavre / trace</option><option value="Magie">Magie</option><option value="Déduction des joueurs">Déduction des joueurs</option><option value="Autre">Autre</option></select></label>
-    <div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="revealSecretDialog">Annuler</button><button type="submit" class="primary">Révéler maintenant</button></div>
-  </form></dialog>
-
-  <dialog id="quickAddDialog" class="modal compact-modal">
-    <div class="modal-head"><div><span class="eyebrow">AJOUTER</span><h2>Créer un composant</h2></div><button type="button" class="icon-btn" data-close="quickAddDialog">×</button></div>
-    <div class="quick-add-grid">
-      <button data-quick-create="location">◈<strong>Lieu</strong></button>
-      <button data-quick-create="npc">♟<strong>PNJ</strong></button>
-      <button data-quick-create="secret">◆<strong>Secret</strong></button>
-      <button data-quick-create="threat">⚠<strong>Menace</strong></button>
-      <button data-quick-create="situation">✦<strong>Munition</strong></button>
-      <button data-quick-create="reward">🎁<strong>Récompense</strong></button>
-      <button data-quick-create="blank">?<strong>Blanc</strong></button>
-      <button data-quick-create="pin">📌<strong>Épingle</strong></button>
-    </div>
-  </dialog>
+  <dialog id="quickNoteDialog" class="modal compact-modal"><form id="quickNoteForm"><div class="modal-head"><div><span class="eyebrow">À LA VOLÉE</span><h2>Note rapide</h2></div><button type="button" class="icon-btn" data-close="quickNoteDialog">×</button></div><div class="quick-note-form"><textarea name="text" rows="4" placeholder="Ce qui devient vrai à la table…"></textarea><select name="type"><option value="note">📝 Note</option><option value="decision">⚑ Décision</option><option value="quote">💬 Citation</option><option value="question">❓ Question</option><option value="death">💀 Mort</option><option value="loot">🎁 Butin</option><option value="lead">🔗 Piste</option></select></div><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="quickNoteDialog">Annuler</button><button type="submit" class="primary">Ajouter</button></div></form></dialog>
+  <dialog id="injectDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">MUNITIONS</span><h2>Injecter dans la partie</h2></div><button type="button" class="icon-btn" data-close="injectDialog">×</button></div><div id="injectContent" class="inject-content"></div></dialog>
+  <dialog id="backupsDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">SÉCURITÉ</span><h2>Backups locaux</h2></div><button type="button" class="icon-btn" data-close="backupsDialog">×</button></div><div id="backupList" class="backup-list"></div></dialog>
+  <dialog id="searchDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">RECHERCHE</span><h2>Retrouver rapidement</h2></div><button type="button" class="icon-btn" data-close="searchDialog">×</button></div><div class="search-box"><input id="searchInput" type="search" placeholder="Lieu, PNJ, secret, note…"><div id="searchResults" class="search-results"></div></div></dialog>
+  <dialog id="quickAddDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">AJOUTER</span><h2>Créer un composant</h2></div><button type="button" class="icon-btn" data-close="quickAddDialog">×</button></div><div class="quick-add-grid"><button data-quick-create="location">◈<strong>Lieu</strong></button><button data-quick-create="npc">♟<strong>PNJ</strong></button><button data-quick-create="secret">◆<strong>Secret</strong></button><button data-quick-create="threat">⚠<strong>Menace</strong></button><button data-quick-create="situation">✦<strong>Munition</strong></button><button data-quick-create="reward">🎁<strong>Récompense</strong></button><button data-quick-create="blank">?<strong>Blanc</strong></button><button data-quick-create="note">📝<strong>Note</strong></button></div></dialog>
 
   <input id="importFile" type="file" accept="application/json,.json" hidden>
   <script src="app.js"></script>
