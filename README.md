@@ -36,3 +36,8 @@ Le paquet est root-safe : déposer directement tous les fichiers à la racine du
 ## V2 — Illustrations
 
 La V2 conserve les fonctions de la V1.6 et ajoute un onglet **ILLUSTRATIONS** entre JOURNAL et NOTE. Les PNG/JPEG importés sont stockés localement dans IndexedDB sur l’iPad, classés en PNJ, Adversaires, Lieux, Objets ou Divers, et ne sont volontairement pas inclus dans les sauvegardes JSON. Une ou plusieurs images peuvent être sélectionnées puis envoyées via la feuille de partage native iPadOS (Discord, Messenger, AirDrop, Fichiers, etc.). Après un partage réussi, les images restent disponibles et sont encadrées en bleu.
+
+
+## Correctif V2.0.1
+- Suppression locale des illustrations sélectionnées avec confirmation OUI/NON.
+- Miniatures non recadrées : chaque image conserve son ratio et apparaît entièrement.

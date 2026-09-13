@@ -594,10 +594,11 @@ function openIllustrationDb(){
 }
 async function getAllIllustrations(){const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readonly'),req=tx.objectStore(ILLUSTRATION_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)})}
 async function putIllustrations(records){if(!records.length)return;const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readwrite'),store=tx.objectStore(ILLUSTRATION_STORE);records.forEach(record=>store.put(record));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Import interrompu'))})}
+async function deleteIllustrations(ids){if(!ids.length)return;const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readwrite'),store=tx.objectStore(ILLUSTRATION_STORE);ids.forEach(id=>store.delete(id));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Suppression interrompue'))})}
 function isSupportedIllustrationFile(file){const type=String(file?.type||'').toLowerCase();return type==='image/png'||type==='image/jpeg'||/\.(png|jpe?g)$/i.test(String(file?.name||''))}
 function illustrationFileType(file){const type=String(file?.type||'').toLowerCase();if(type==='image/png')return 'image/png';if(type==='image/jpeg')return 'image/jpeg';return /\.png$/i.test(file?.name||'')?'image/png':'image/jpeg'}
 function humanFileSize(bytes){const n=Number(bytes)||0;if(n<1024)return `${n} o`;if(n<1024*1024)return `${(n/1024).toFixed(n<10240?1:0)} Ko`;return `${(n/1024/1024).toFixed(1)} Mo`}
-function renderIllustrationSelectionMeta(){const count=illustrationSelectedIds.size,meta=$('#illustrationSelectionMeta'),button=$('#btnExportIllustrations');if(meta)meta.textContent=count?`${count} sélectionnée${count>1?'s':''}`:'Aucune sélection';if(button){button.disabled=!count;button.textContent=count?`↗ Exporter (${count})`:'↗ Exporter'}}
+function renderIllustrationSelectionMeta(){const count=illustrationSelectedIds.size,meta=$('#illustrationSelectionMeta'),exportButton=$('#btnExportIllustrations'),deleteButton=$('#btnDeleteIllustrations');if(meta)meta.textContent=count?`${count} sélectionnée${count>1?'s':''}`:'Aucune sélection';if(exportButton){exportButton.disabled=!count;exportButton.textContent=count?`↗ Exporter (${count})`:'↗ Exporter'}if(deleteButton){deleteButton.disabled=!count;deleteButton.textContent=count?`Supprimer (${count})`:'Supprimer'}}
 async function renderIllustrations(){
   const content=$('#illustrationsContent');if(!content)return;
   const token=++illustrationRenderToken;
@@ -628,6 +629,15 @@ async function savePendingIllustrations(){
   const files=pendingIllustrationFiles;if(!files.length)return;
   const records=files.map((file,i)=>{const select=$(`[data-illustration-import-category="${i}"]`),category=select?.value||'misc',type=illustrationFileType(file);return {id:uid('img'),name:file.name||`Illustration ${i+1}`,category,type,size:file.size||0,blob:file.slice(0,file.size,type),createdAt:nowStamp(),sentAt:null}});
   await putIllustrations(records);pendingIllustrationFiles=[];$('#illustrationImportDialog').close();illustrationSelectedIds=new Set();await renderIllustrations();toast(`${records.length} illustration${records.length>1?'s':''} importée${records.length>1?'s':''}`);
+}
+function openIllustrationDeleteDialog(){
+  const count=illustrationSelectedIds.size;if(!count)return toast('Sélectionne au moins une illustration');
+  const message=$('#illustrationDeleteMessage');if(message)message.textContent=`Supprimer définitivement ${count} illustration${count>1?'s':''} sélectionnée${count>1?'s':''} de cet iPad ? Tu pourras toujours ${count>1?'les':'la'} réimporter plus tard.`;
+  $('#illustrationDeleteDialog').showModal();
+}
+async function confirmDeleteSelectedIllustrations(){
+  const ids=[...illustrationSelectedIds];if(!ids.length){$('#illustrationDeleteDialog').close();return}
+  try{await deleteIllustrations(ids);illustrationSelectedIds.clear();$('#illustrationDeleteDialog').close();await renderIllustrations();toast(`${ids.length} illustration${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`)}catch(err){console.error('Suppression illustrations',err);toast('Impossible de supprimer la sélection')}
 }
 async function exportSelectedIllustrations(){
   const selected=illustrationRecords.filter(x=>illustrationSelectedIds.has(x.id));if(!selected.length)return toast('Sélectionne au moins une illustration');
@@ -667,8 +677,8 @@ $$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;
 $('#npcImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importNpcFile(file)}catch(err){console.error(err);toast('Fichier PNJ incompatible')}e.target.value=''};
 $('#locationImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importLocationFile(file)}catch(err){console.error(err);toast('Fichier lieu incompatible')}e.target.value=''};
 $('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnImportSavedSession').onclick=()=>$('#savedSessionImportFile').click();$('#savedSessionImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSavedSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
-$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});
+$('#btnDeleteIllustrations').onclick=openIllustrationDeleteDialog;$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#btnCancelDeleteIllustrations').onclick=()=>$('#illustrationDeleteDialog').close();$('#btnConfirmDeleteIllustrations').onclick=confirmDeleteSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.1',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();
