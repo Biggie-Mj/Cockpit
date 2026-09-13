@@ -578,6 +578,7 @@ let illustrationRecords=[];
 let illustrationSelectedIds=new Set();
 let illustrationObjectUrls=[];
 let pendingIllustrationFiles=[];
+let illustrationMoveMode=false;
 let illustrationRenderToken=0;
 function illustrationCategoryLabel(value){return Object.fromEntries(ILLUSTRATION_CATEGORIES)[value]||'Divers'}
 function illustrationCategoryOptions(selected='misc'){return ILLUSTRATION_CATEGORIES.map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
@@ -598,7 +599,7 @@ async function deleteIllustrations(ids){if(!ids.length)return;const db=await ope
 function isSupportedIllustrationFile(file){const type=String(file?.type||'').toLowerCase();return type==='image/png'||type==='image/jpeg'||/\.(png|jpe?g)$/i.test(String(file?.name||''))}
 function illustrationFileType(file){const type=String(file?.type||'').toLowerCase();if(type==='image/png')return 'image/png';if(type==='image/jpeg')return 'image/jpeg';return /\.png$/i.test(file?.name||'')?'image/png':'image/jpeg'}
 function humanFileSize(bytes){const n=Number(bytes)||0;if(n<1024)return `${n} o`;if(n<1024*1024)return `${(n/1024).toFixed(n<10240?1:0)} Ko`;return `${(n/1024/1024).toFixed(1)} Mo`}
-function renderIllustrationSelectionMeta(){const count=illustrationSelectedIds.size,meta=$('#illustrationSelectionMeta'),exportButton=$('#btnExportIllustrations'),deleteButton=$('#btnDeleteIllustrations');if(meta)meta.textContent=count?`${count} sélectionnée${count>1?'s':''}`:'Aucune sélection';if(exportButton){exportButton.disabled=!count;exportButton.textContent=count?`↗ Exporter (${count})`:'↗ Exporter'}if(deleteButton){deleteButton.disabled=!count;deleteButton.textContent=count?`Supprimer (${count})`:'Supprimer'}}
+function renderIllustrationSelectionMeta(){const count=illustrationSelectedIds.size,meta=$('#illustrationSelectionMeta'),exportButton=$('#btnExportIllustrations'),deleteButton=$('#btnDeleteIllustrations'),moveButton=$('#btnMoveIllustrations'),panel=$('.illustrations-panel');if(!count&&illustrationMoveMode)illustrationMoveMode=false;if(meta)meta.textContent=illustrationMoveMode?'Choisis la catégorie de destination':(count?`${count} sélectionnée${count>1?'s':''}`:'Aucune sélection');if(exportButton){exportButton.disabled=!count;exportButton.textContent=count?`↗ Exporter (${count})`:'↗ Exporter'}if(deleteButton){deleteButton.disabled=!count;deleteButton.textContent=count?`Supprimer (${count})`:'Supprimer'}if(moveButton){moveButton.disabled=!count;moveButton.classList.toggle('active',illustrationMoveMode);moveButton.textContent=illustrationMoveMode?'Annuler déplacement':(count?`Déplacer (${count})`:'Déplacer')}if(panel)panel.classList.toggle('move-mode',illustrationMoveMode)}
 async function renderIllustrations(){
   const content=$('#illustrationsContent');if(!content)return;
   const token=++illustrationRenderToken;
@@ -610,13 +611,33 @@ async function renderIllustrations(){
     cleanupIllustrationObjectUrls();
     const categories=ILLUSTRATION_CATEGORIES.map(([value,label],catIndex)=>{
       const arr=illustrationRecords.filter(x=>(x.category||'misc')===value),sentCount=arr.filter(x=>x.sentAt).length;
-      const cards=arr.map(item=>{const url=URL.createObjectURL(item.blob);illustrationObjectUrls.push(url);const selected=illustrationSelectedIds.has(item.id);return `<button type="button" class="illustration-card ${item.sentAt?'sent':''} ${selected?'selected':''}" data-illustration-id="${item.id}" aria-pressed="${selected?'true':'false'}"><img src="${url}" alt="${esc(item.name||label)}"><span class="illustration-card-footer"><strong>${esc(item.name||'Illustration')}</strong><small>${item.sentAt?`Envoyée · ${new Date(item.sentAt).toLocaleDateString('fr-FR')}`:'Jamais envoyée'}</small></span></button>`}).join('')||'<div class="illustration-empty">Aucune illustration dans cette catégorie.</div>';
+      const cards=arr.map(item=>{const url=URL.createObjectURL(item.blob);illustrationObjectUrls.push(url);const selected=illustrationSelectedIds.has(item.id);return `<button type="button" class="illustration-card ${item.sentAt?'sent':''} ${selected?'selected':''} ${selected&&illustrationMoveMode?'moving':''}" data-illustration-id="${item.id}" aria-pressed="${selected?'true':'false'}"><img src="${url}" alt="${esc(item.name||label)}"><span class="illustration-card-footer"><strong>${esc(item.name||'Illustration')}</strong><small>${item.sentAt?`Envoyée · ${new Date(item.sentAt).toLocaleDateString('fr-FR')}`:'Jamais envoyée'}</small></span></button>`}).join('')||'<div class="illustration-empty">Aucune illustration dans cette catégorie.</div>';
       return `<details class="illustration-drawer" ${catIndex===0||arr.length?'open':''} data-illustration-drawer="${value}"><summary><span class="illustration-drawer-title"><strong>${label}</strong><span class="illustration-drawer-count">${arr.length}</span></span><span class="illustration-drawer-meta">${sentCount?`${sentCount} envoyée${sentCount>1?'s':''}`:'—'}</span></summary><div class="illustration-grid">${cards}</div></details>`;
     }).join('');
     content.innerHTML=categories;
-    $$('[data-illustration-id]').forEach(card=>card.onclick=()=>{const id=card.dataset.illustrationId;if(illustrationSelectedIds.has(id))illustrationSelectedIds.delete(id);else illustrationSelectedIds.add(id);card.classList.toggle('selected',illustrationSelectedIds.has(id));card.setAttribute('aria-pressed',illustrationSelectedIds.has(id)?'true':'false');renderIllustrationSelectionMeta()});
+    $$('[data-illustration-id]').forEach(card=>card.onclick=()=>{const id=card.dataset.illustrationId;if(illustrationSelectedIds.has(id))illustrationSelectedIds.delete(id);else illustrationSelectedIds.add(id);const selected=illustrationSelectedIds.has(id);card.classList.toggle('selected',selected);card.classList.toggle('moving',selected&&illustrationMoveMode);card.setAttribute('aria-pressed',selected?'true':'false');renderIllustrationSelectionMeta()});
+    $$('[data-illustration-drawer] > summary').forEach(summary=>summary.onclick=e=>{if(!illustrationMoveMode)return;e.preventDefault();e.stopPropagation();moveSelectedIllustrations(summary.parentElement.dataset.illustrationDrawer)});
     renderIllustrationSelectionMeta();
   }catch(err){console.error('Illustrations',err);content.innerHTML='<div class="journal-empty">La bibliothèque locale d’illustrations n’est pas disponible sur cet appareil.</div>';renderIllustrationSelectionMeta()}
+}
+function toggleIllustrationMoveMode(){
+  if(!illustrationSelectedIds.size)return toast('Sélectionne au moins une illustration');
+  illustrationMoveMode=!illustrationMoveMode;renderIllustrationSelectionMeta();
+  if(illustrationMoveMode)toast('Choisis la catégorie de destination');
+}
+async function moveSelectedIllustrations(category){
+  if(!illustrationMoveMode||!illustrationSelectedIds.size)return;
+  if(!ILLUSTRATION_CATEGORIES.some(([value])=>value===category))return;
+  const selected=illustrationRecords.filter(item=>illustrationSelectedIds.has(item.id));
+  if(!selected.length){illustrationMoveMode=false;renderIllustrationSelectionMeta();return}
+  selected.forEach(item=>item.category=category);
+  try{
+    await putIllustrations(selected);
+    const count=selected.length,label=illustrationCategoryLabel(category);
+    illustrationSelectedIds.clear();illustrationMoveMode=false;
+    await renderIllustrations();
+    toast(`${count} illustration${count>1?'s':''} déplacée${count>1?'s':''} vers ${label}`);
+  }catch(err){console.error('Déplacement illustrations',err);toast('Impossible de déplacer la sélection')}
 }
 function openIllustrationImporter(){const input=$('#illustrationImportFile');if(input){input.value='';input.click()}}
 function prepareIllustrationImport(files){
@@ -628,7 +649,7 @@ function prepareIllustrationImport(files){
 async function savePendingIllustrations(){
   const files=pendingIllustrationFiles;if(!files.length)return;
   const records=files.map((file,i)=>{const select=$(`[data-illustration-import-category="${i}"]`),category=select?.value||'misc',type=illustrationFileType(file);return {id:uid('img'),name:file.name||`Illustration ${i+1}`,category,type,size:file.size||0,blob:file.slice(0,file.size,type),createdAt:nowStamp(),sentAt:null}});
-  await putIllustrations(records);pendingIllustrationFiles=[];$('#illustrationImportDialog').close();illustrationSelectedIds=new Set();await renderIllustrations();toast(`${records.length} illustration${records.length>1?'s':''} importée${records.length>1?'s':''}`);
+  await putIllustrations(records);pendingIllustrationFiles=[];$('#illustrationImportDialog').close();illustrationSelectedIds=new Set();illustrationMoveMode=false;await renderIllustrations();toast(`${records.length} illustration${records.length>1?'s':''} importée${records.length>1?'s':''}`);
 }
 function openIllustrationDeleteDialog(){
   const count=illustrationSelectedIds.size;if(!count)return toast('Sélectionne au moins une illustration');
@@ -637,7 +658,7 @@ function openIllustrationDeleteDialog(){
 }
 async function confirmDeleteSelectedIllustrations(){
   const ids=[...illustrationSelectedIds];if(!ids.length){$('#illustrationDeleteDialog').close();return}
-  try{await deleteIllustrations(ids);illustrationSelectedIds.clear();$('#illustrationDeleteDialog').close();await renderIllustrations();toast(`${ids.length} illustration${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`)}catch(err){console.error('Suppression illustrations',err);toast('Impossible de supprimer la sélection')}
+  try{await deleteIllustrations(ids);illustrationSelectedIds.clear();illustrationMoveMode=false;$('#illustrationDeleteDialog').close();await renderIllustrations();toast(`${ids.length} illustration${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`)}catch(err){console.error('Suppression illustrations',err);toast('Impossible de supprimer la sélection')}
 }
 async function exportSelectedIllustrations(){
   const selected=illustrationRecords.filter(x=>illustrationSelectedIds.has(x.id));if(!selected.length)return toast('Sélectionne au moins une illustration');
@@ -646,7 +667,7 @@ async function exportSelectedIllustrations(){
     if(!navigator.share)throw new Error('Partage iPad indisponible');
     if(navigator.canShare&&!navigator.canShare({files}))throw new Error('Partage de ces fichiers non pris en charge');
     await navigator.share({title:`Cockpit · ${selected.length} illustration${selected.length>1?'s':''}`,files});
-    const sentAt=nowStamp();selected.forEach(item=>item.sentAt=sentAt);await putIllustrations(selected);illustrationSelectedIds.clear();await renderIllustrations();toast(`${selected.length} illustration${selected.length>1?'s':''} marquée${selected.length>1?'s':''} comme envoyée${selected.length>1?'s':''}`);
+    const sentAt=nowStamp();selected.forEach(item=>item.sentAt=sentAt);await putIllustrations(selected);illustrationSelectedIds.clear();illustrationMoveMode=false;await renderIllustrations();toast(`${selected.length} illustration${selected.length>1?'s':''} marquée${selected.length>1?'s':''} comme envoyée${selected.length>1?'s':''}`);
   }catch(err){if(err?.name==='AbortError')return;console.warn('Partage illustrations',err);toast('Partage direct indisponible — utilise Safari/iPadOS compatible avec le partage de fichiers')}
 }
 
@@ -677,8 +698,8 @@ $$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;
 $('#npcImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importNpcFile(file)}catch(err){console.error(err);toast('Fichier PNJ incompatible')}e.target.value=''};
 $('#locationImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importLocationFile(file)}catch(err){console.error(err);toast('Fichier lieu incompatible')}e.target.value=''};
 $('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnImportSavedSession').onclick=()=>$('#savedSessionImportFile').click();$('#savedSessionImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSavedSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
-$('#btnDeleteIllustrations').onclick=openIllustrationDeleteDialog;$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#btnCancelDeleteIllustrations').onclick=()=>$('#illustrationDeleteDialog').close();$('#btnConfirmDeleteIllustrations').onclick=confirmDeleteSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});
+$('#btnDeleteIllustrations').onclick=openIllustrationDeleteDialog;$('#btnMoveIllustrations').onclick=toggleIllustrationMoveMode;$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#btnCancelDeleteIllustrations').onclick=()=>$('#illustrationDeleteDialog').close();$('#btnConfirmDeleteIllustrations').onclick=confirmDeleteSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.1',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.2',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();

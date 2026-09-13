@@ -41,3 +41,8 @@ La V2 conserve les fonctions de la V1.6 et ajoute un onglet **ILLUSTRATIONS** en
 ## Correctif V2.0.1
 - Suppression locale des illustrations sélectionnées avec confirmation OUI/NON.
 - Miniatures non recadrées : chaque image conserve son ratio et apparaît entièrement.
+
+
+## V2.0.2 — Illustrations
+- Les cartes d’illustrations utilisent leur hauteur naturelle : aucun recadrage forcé, ratio d’origine conservé.
+- Nouveau bouton vert **Déplacer** entre Supprimer et Importer. Une sélection passe en surbrillance verte, puis un toucher sur l’en-tête d’une catégorie déplace les images vers cette catégorie.
