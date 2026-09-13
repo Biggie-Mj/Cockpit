@@ -1,4 +1,4 @@
-const APP_VERSION='1.6';
+const APP_VERSION='2.0';
 const STORAGE_KEY='cockpit-v1';
 const LEGACY_KEYS=['dm-cockpit-v05','dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
 const BACKUP_KEY='cockpit-v1-backups';
@@ -16,7 +16,7 @@ const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'1.6',
+  version:'2.0',
   title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
   activeLocationId:'l1',
@@ -108,7 +108,7 @@ const DEMO={
   ]
 };
 
-const EMPTY=()=>({version:'1.6',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
+const EMPTY=()=>({version:'2.0',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
 
 let state=load();
 let history=[];
@@ -194,12 +194,14 @@ function maybeAutoBackup(now=Date.now()){
 function render(){
   state=normalize(state);
   $('#sessionTitle').value=state.title||'';
-  renderPlayers();renderPrep();renderTable();renderLibrary();renderJournal();renderBackupButton();renderHome();const launch=$('#btnLaunchSession');if(launch)launch.textContent=state.sessionStartedAt?'▶ Reprendre la table':'▶ Lancer la session';switchView(state.view||'prep',false);
+  renderPlayers();renderPrep();renderTable();renderLibrary();renderJournal();if(state.view==='illustrations')renderIllustrations();renderBackupButton();renderHome();const launch=$('#btnLaunchSession');if(launch)launch.textContent=state.sessionStartedAt?'▶ Reprendre la table':'▶ Lancer la session';switchView(state.view||'prep',false);
 }
 function switchView(view,persistView=true){
-  const valid=['prep','table','library','journal'];if(!valid.includes(view))view='prep';state.view=view;
+  const valid=['prep','table','library','journal','illustrations'];if(!valid.includes(view))view='prep';const previous=state.view;state.view=view;
   for(const v of valid)$(`#${v}View`).classList.toggle('hidden',v!==view);
   $$('.nav-btn[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  if(previous==='illustrations'&&view!=='illustrations')cleanupIllustrationObjectUrls();
+  if(view==='illustrations')renderIllustrations();
   if(persistView)persist();
 }
 
@@ -563,6 +565,81 @@ function parseLocationImport(parsed){
 async function importNpcFile(file){const parsed=JSON.parse(await file.text()),items=parseNpcImport(parsed);if(!items.length)throw new Error('Aucun PNJ valide');commit(()=>{state.npcs.push(...items);state.libraryTab='npcs'},`${items.length} PNJ importé${items.length>1?'s':''}`);if($('#npcDialog')?.open)$('#npcDialog').close();if(state.view==='library')renderLibrary()}
 async function importLocationFile(file){const parsed=JSON.parse(await file.text()),items=parseLocationImport(parsed);if(!items.length)throw new Error('Aucun lieu valide');commit(()=>{state.locations.push(...items);state.previewLocationId=items[0].id;state.libraryTab='locations'},`${items.length} lieu${items.length>1?'x':''} importé${items.length>1?'s':''}`);if($('#locationDialog')?.open)$('#locationDialog').close();if(state.view==='library')renderLibrary()}
 
+
+// ===== V2 · Illustrations locales (IndexedDB, hors sauvegardes JSON) =====
+const ILLUSTRATION_DB_NAME='cockpit-illustrations-v2';
+const ILLUSTRATION_DB_VERSION=1;
+const ILLUSTRATION_STORE='illustrations';
+const ILLUSTRATION_CATEGORIES=[
+  ['npc','PNJ'],['adversary','Adversaires'],['location','Lieux'],['object','Objets'],['misc','Divers']
+];
+let illustrationDbPromise=null;
+let illustrationRecords=[];
+let illustrationSelectedIds=new Set();
+let illustrationObjectUrls=[];
+let pendingIllustrationFiles=[];
+let illustrationRenderToken=0;
+function illustrationCategoryLabel(value){return Object.fromEntries(ILLUSTRATION_CATEGORIES)[value]||'Divers'}
+function illustrationCategoryOptions(selected='misc'){return ILLUSTRATION_CATEGORIES.map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
+function cleanupIllustrationObjectUrls(){illustrationObjectUrls.forEach(url=>URL.revokeObjectURL(url));illustrationObjectUrls=[]}
+function openIllustrationDb(){
+  if(illustrationDbPromise)return illustrationDbPromise;
+  illustrationDbPromise=new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)){reject(new Error('IndexedDB indisponible'));return}
+    const req=indexedDB.open(ILLUSTRATION_DB_NAME,ILLUSTRATION_DB_VERSION);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ILLUSTRATION_STORE)){const store=db.createObjectStore(ILLUSTRATION_STORE,{keyPath:'id'});store.createIndex('category','category',{unique:false});store.createIndex('createdAt','createdAt',{unique:false})}};
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Impossible d’ouvrir la bibliothèque d’illustrations'));
+  });
+  return illustrationDbPromise;
+}
+async function getAllIllustrations(){const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readonly'),req=tx.objectStore(ILLUSTRATION_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)})}
+async function putIllustrations(records){if(!records.length)return;const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readwrite'),store=tx.objectStore(ILLUSTRATION_STORE);records.forEach(record=>store.put(record));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Import interrompu'))})}
+function isSupportedIllustrationFile(file){const type=String(file?.type||'').toLowerCase();return type==='image/png'||type==='image/jpeg'||/\.(png|jpe?g)$/i.test(String(file?.name||''))}
+function illustrationFileType(file){const type=String(file?.type||'').toLowerCase();if(type==='image/png')return 'image/png';if(type==='image/jpeg')return 'image/jpeg';return /\.png$/i.test(file?.name||'')?'image/png':'image/jpeg'}
+function humanFileSize(bytes){const n=Number(bytes)||0;if(n<1024)return `${n} o`;if(n<1024*1024)return `${(n/1024).toFixed(n<10240?1:0)} Ko`;return `${(n/1024/1024).toFixed(1)} Mo`}
+function renderIllustrationSelectionMeta(){const count=illustrationSelectedIds.size,meta=$('#illustrationSelectionMeta'),button=$('#btnExportIllustrations');if(meta)meta.textContent=count?`${count} sélectionnée${count>1?'s':''}`:'Aucune sélection';if(button){button.disabled=!count;button.textContent=count?`↗ Exporter (${count})`:'↗ Exporter'}}
+async function renderIllustrations(){
+  const content=$('#illustrationsContent');if(!content)return;
+  const token=++illustrationRenderToken;
+  content.innerHTML='<div class="journal-empty">Chargement des illustrations…</div>';
+  try{
+    const records=await getAllIllustrations();if(token!==illustrationRenderToken)return;
+    illustrationRecords=records.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    const validIds=new Set(illustrationRecords.map(x=>x.id));illustrationSelectedIds=new Set([...illustrationSelectedIds].filter(id=>validIds.has(id)));
+    cleanupIllustrationObjectUrls();
+    const categories=ILLUSTRATION_CATEGORIES.map(([value,label],catIndex)=>{
+      const arr=illustrationRecords.filter(x=>(x.category||'misc')===value),sentCount=arr.filter(x=>x.sentAt).length;
+      const cards=arr.map(item=>{const url=URL.createObjectURL(item.blob);illustrationObjectUrls.push(url);const selected=illustrationSelectedIds.has(item.id);return `<button type="button" class="illustration-card ${item.sentAt?'sent':''} ${selected?'selected':''}" data-illustration-id="${item.id}" aria-pressed="${selected?'true':'false'}"><img src="${url}" alt="${esc(item.name||label)}"><span class="illustration-card-footer"><strong>${esc(item.name||'Illustration')}</strong><small>${item.sentAt?`Envoyée · ${new Date(item.sentAt).toLocaleDateString('fr-FR')}`:'Jamais envoyée'}</small></span></button>`}).join('')||'<div class="illustration-empty">Aucune illustration dans cette catégorie.</div>';
+      return `<details class="illustration-drawer" ${catIndex===0||arr.length?'open':''} data-illustration-drawer="${value}"><summary><span class="illustration-drawer-title"><strong>${label}</strong><span class="illustration-drawer-count">${arr.length}</span></span><span class="illustration-drawer-meta">${sentCount?`${sentCount} envoyée${sentCount>1?'s':''}`:'—'}</span></summary><div class="illustration-grid">${cards}</div></details>`;
+    }).join('');
+    content.innerHTML=categories;
+    $$('[data-illustration-id]').forEach(card=>card.onclick=()=>{const id=card.dataset.illustrationId;if(illustrationSelectedIds.has(id))illustrationSelectedIds.delete(id);else illustrationSelectedIds.add(id);card.classList.toggle('selected',illustrationSelectedIds.has(id));card.setAttribute('aria-pressed',illustrationSelectedIds.has(id)?'true':'false');renderIllustrationSelectionMeta()});
+    renderIllustrationSelectionMeta();
+  }catch(err){console.error('Illustrations',err);content.innerHTML='<div class="journal-empty">La bibliothèque locale d’illustrations n’est pas disponible sur cet appareil.</div>';renderIllustrationSelectionMeta()}
+}
+function openIllustrationImporter(){const input=$('#illustrationImportFile');if(input){input.value='';input.click()}}
+function prepareIllustrationImport(files){
+  pendingIllustrationFiles=[...files].filter(isSupportedIllustrationFile);
+  if(!pendingIllustrationFiles.length){toast('Choisis des fichiers PNG ou JPEG');return}
+  const rows=$('#illustrationImportRows');rows.innerHTML=pendingIllustrationFiles.map((file,i)=>`<div class="illustration-import-row"><div><strong>${esc(file.name)}</strong><small>${humanFileSize(file.size)} · ${illustrationFileType(file)==='image/png'?'PNG':'JPEG'}</small></div><select data-illustration-import-category="${i}" aria-label="Catégorie de ${esc(file.name)}">${illustrationCategoryOptions('misc')}</select></div>`).join('');
+  $('#illustrationImportDialog').showModal();
+}
+async function savePendingIllustrations(){
+  const files=pendingIllustrationFiles;if(!files.length)return;
+  const records=files.map((file,i)=>{const select=$(`[data-illustration-import-category="${i}"]`),category=select?.value||'misc',type=illustrationFileType(file);return {id:uid('img'),name:file.name||`Illustration ${i+1}`,category,type,size:file.size||0,blob:file.slice(0,file.size,type),createdAt:nowStamp(),sentAt:null}});
+  await putIllustrations(records);pendingIllustrationFiles=[];$('#illustrationImportDialog').close();illustrationSelectedIds=new Set();await renderIllustrations();toast(`${records.length} illustration${records.length>1?'s':''} importée${records.length>1?'s':''}`);
+}
+async function exportSelectedIllustrations(){
+  const selected=illustrationRecords.filter(x=>illustrationSelectedIds.has(x.id));if(!selected.length)return toast('Sélectionne au moins une illustration');
+  const files=selected.map((item,i)=>{const ext=item.type==='image/png'?'png':'jpg',base=String(item.name||`illustration-${i+1}`).replace(/\.(png|jpe?g)$/i,'').trim()||`illustration-${i+1}`;return new File([item.blob],`${base}.${ext}`,{type:item.type||'image/jpeg'})});
+  try{
+    if(!navigator.share)throw new Error('Partage iPad indisponible');
+    if(navigator.canShare&&!navigator.canShare({files}))throw new Error('Partage de ces fichiers non pris en charge');
+    await navigator.share({title:`Cockpit · ${selected.length} illustration${selected.length>1?'s':''}`,files});
+    const sentAt=nowStamp();selected.forEach(item=>item.sentAt=sentAt);await putIllustrations(selected);illustrationSelectedIds.clear();await renderIllustrations();toast(`${selected.length} illustration${selected.length>1?'s':''} marquée${selected.length>1?'s':''} comme envoyée${selected.length>1?'s':''}`);
+  }catch(err){if(err?.name==='AbortError')return;console.warn('Partage illustrations',err);toast('Partage direct indisponible — utilise Safari/iPadOS compatible avec le partage de fichiers')}
+}
+
 function openSearch(){const input=$('#searchInput');input.value='';$('#searchResults').innerHTML='<div class="empty-mini">Recherche lieux, PNJ, secrets et journal.</div>';$('#searchDialog').showModal();setTimeout(()=>input.focus(),50)}
 function runSearch(q){q=q.trim().toLowerCase();if(!q){$('#searchResults').innerHTML='<div class="empty-mini">Commence à taper…</div>';return}const results=[];state.locations.forEach(x=>{if(`${x.name} ${x.concept} ${x.situation}`.toLowerCase().includes(q))results.push({type:'Lieu',title:x.name,text:x.situation,action:`location:${x.id}`})});state.npcs.forEach(x=>{if(`${x.name} ${x.role} ${x.identity} ${x.wants} ${x.knows}`.toLowerCase().includes(q))results.push({type:'PNJ',title:x.name,text:x.role,action:`npc:${x.id}`})});state.secrets.forEach(x=>{if(`${x.title} ${x.text}`.toLowerCase().includes(q))results.push({type:'Secret',title:x.title,text:x.text,action:'library:secrets'})});state.journal.forEach(x=>{if(x.text.toLowerCase().includes(q))results.push({type:'Journal',title:locationName(x.locationId),text:x.text,action:'journal'})});$('#searchResults').innerHTML=results.slice(0,30).map(r=>`<button class="search-result" data-search-action="${r.action}"><span class="eyebrow">${r.type}</span><strong>${esc(r.title)}</strong><small>${esc(r.text||'')}</small></button>`).join('')||'<div class="empty-mini">Aucun résultat.</div>';$$('[data-search-action]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.searchAction.split(':');$('#searchDialog').close();if(type==='location'){state.previewLocationId=id;switchView('table');renderTable()}else if(type==='npc')showNpcSheet(id);else if(type==='library'){state.libraryTab=id;switchView('library');renderLibrary()}else switchView('journal')})}
 
@@ -590,7 +667,8 @@ $$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;
 $('#npcImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importNpcFile(file)}catch(err){console.error(err);toast('Fichier PNJ incompatible')}e.target.value=''};
 $('#locationImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importLocationFile(file)}catch(err){console.error(err);toast('Fichier lieu incompatible')}e.target.value=''};
 $('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnImportSavedSession').onclick=()=>$('#savedSessionImportFile').click();$('#savedSessionImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSavedSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
+$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=1.6.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.0',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();

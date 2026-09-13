@@ -1,4 +1,4 @@
-# Cockpit V1.6 — GitHub Pages / iPad
+# Cockpit V2 — GitHub Pages / iPad
 
 Cette version part directement de la V1.5 fournie par l’utilisateur. Aucun changement fonctionnel n’a été apporté hors du menu `…` et de **Sessions sauvegardées**.
 
@@ -31,3 +31,8 @@ Le paquet est root-safe : déposer directement tous les fichiers à la racine du
 - Export d’un emplacement puis réimport du payload exporté : contenu identique pour les collections contrôlées : OK.
 - Limite de 15 emplacements : OK ; un 16e import passe en sélection de remplacement sans créer de 16e slot.
 - Sauvegarde colossale testée : 20 PNJ, 12 lieux, 18 secrets, 12 menaces, 10 situations, Strong Start de plus de 1 600 caractères.
+
+
+## V2 — Illustrations
+
+La V2 conserve les fonctions de la V1.6 et ajoute un onglet **ILLUSTRATIONS** entre JOURNAL et NOTE. Les PNG/JPEG importés sont stockés localement dans IndexedDB sur l’iPad, classés en PNJ, Adversaires, Lieux, Objets ou Divers, et ne sont volontairement pas inclus dans les sauvegardes JSON. Une ou plusieurs images peuvent être sélectionnées puis envoyées via la feuille de partage native iPadOS (Discord, Messenger, AirDrop, Fichiers, etc.). Après un partage réussi, les images restent disponibles et sont encadrées en bleu.

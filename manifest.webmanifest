@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Cockpit V1.6 — Préparation D&D 5e",
+  "name": "Cockpit V2 — Préparation D&D 5e",
   "short_name": "Cockpit",
-  "description": "Console hors ligne de préparation et de suivi de session D&D 5e pour iPad.",
+  "description": "Console hors ligne de préparation, suivi de session et partage d’illustrations D&D 5e pour iPad.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
