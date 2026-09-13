@@ -25,3 +25,7 @@ Les données de session restent dans le stockage local du navigateur, indépenda
 - barre de navigation dimensionnée avec `safe-area-inset-bottom` ;
 - `black-translucent` remplacé par `black` pour éviter les anomalies de viewport signalées en mode web app ;
 - cache PWA versionné `cockpit-v1-2-ipados-safe`.
+
+
+## V1.3 — iPadOS status bar
+Le bandeau supérieur tient désormais compte de `safe-area-inset-top` et ajoute 6 px de respiration en mode web app installée. Le ruban joueurs, la vue principale, les menus flottants et les notifications suivent automatiquement ce nouveau décalage.
