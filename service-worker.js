@@ -1,6 +1,6 @@
-const CACHE='cockpit-v1.5-final-journal';
+const CACHE='cockpit-v1.5.1-import-session';
 const SHELL=[
-  './','./index.html','./styles.css?v=1.5.0','./app.js?v=1.5.0','./manifest.webmanifest?v=1.5.0'
+  './','./index.html','./styles.css?v=1.5.0','./app.js?v=1.5.1','./manifest.webmanifest?v=1.5.0'
 ];
 const MEDIA=[
   './menu-background-v1.jpg?v=1.5.0','./icon-512.png','./icon-192.png','./icon-64.png','./apple-touch-icon.png','./favicon-32.png'
