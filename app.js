@@ -1,4 +1,4 @@
-const APP_VERSION='2.0.5';
+const APP_VERSION='2.0.6';
 const STORAGE_KEY='cockpit-v1';
 const LEGACY_KEYS=['dm-cockpit-v05','dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
 const BACKUP_KEY='cockpit-v1-backups';
@@ -17,7 +17,7 @@ const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'2.0.5',
+  version:'2.0.6',
   title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
   activeLocationId:'l1',
@@ -360,7 +360,7 @@ function openStrongStartPlay(){if(state.strongStart.used)return;$('#strongStartP
 function playStrongStart(){if(state.strongStart.used)return;commit(()=>{const startsSession=!state.sessionStartedAt;state.strongStart.used=true;if(startsSession)state.sessionStartedAt=nowStamp();if(startsSession||(!state.sessionTimer?.running&&!(state.sessionTimer?.elapsedMs>0)))ensureSessionTimerRunning();state.journal.unshift({id:uid('j'),type:'location',text:'Strong Start joué — la session commence.',locationId:state.activeLocationId,createdAt:nowStamp()})},'Strong Start joué');$('#strongStartPlayDialog').close();playSessionStartFx()}
 function hideSessionStartFx(){const fx=$('#sessionStartFx');if(!fx)return;fx.classList.remove('show');fx.setAttribute('aria-hidden','true');clearTimeout(playSessionStartFx._t)}
 function playSessionStartFx(){const fx=$('#sessionStartFx');if(!fx)return;fx.classList.add('show');fx.setAttribute('aria-hidden','false');clearTimeout(playSessionStartFx._t);playSessionStartFx._t=setTimeout(hideSessionStartFx,5500)}
-function methodIcon(method){const map={'Conversation':'bulle_dialogue','Observation':'oeil','Document':'parchemin','Magie':'magie','Déduction des joueurs':'cerveau','Autre':'etoile'};const icon=map[method]||'etoile';return `${uiIcon(icon,'ui-icon inline-ui-icon method-ui-icon')} ${esc(method||'Révélé')}`;}
+function methodIcon(method){const map={'Conversation':'bulle_dialogue','Observation':'oeil','Document':'parchemin','Magie':'magie','Déduction des joueurs':'cerveau','Autre':'etoile'};const icon=map[method]||'etoile';return uiIcon(icon,'ui-icon inline-ui-icon method-ui-icon');}
 function revealSecret(id,method){const s=state.secrets.find(x=>x.id===id);if(!s||s.revealed)return;recentlyRevealedSecretId=id;commit(()=>{s.revealed=true;s.revealedAt=nowStamp();s.method=method;state.journal.unshift({id:uid('j'),type:'secret',text:`Secret révélé (${method}) : ${s.title} — ${s.text}`,locationId:state.activeLocationId,createdAt:nowStamp()})},'Secret révélé');revealPendingId=null;setTimeout(()=>{if(recentlyRevealedSecretId===id){recentlyRevealedSecretId=null;renderContextPanel()}},4000)}
 function injectItem(type,id){const arr=type==='threat'?state.threats:state.situations,item=arr.find(x=>x.id===id);if(!item)return;if(item.injected){toast('Déjà injectée');return}const loc=activeLocation();if(!loc)return toast('Choisis d’abord un lieu actuel');commit(()=>{item.injected=true;item.activeInjected=true;item.injectedLocationId=loc.id;item.injectedAt=nowStamp();item.used=true},type==='threat'?'Menace injectée':'Situation injectée');renderInjection()}
 function makeInjectionAvailable(type,id){const arr=type==='threat'?state.threats:state.situations,item=arr.find(x=>x.id===id);if(!item||!item.injected)return;commit(()=>{item.injected=false;item.activeInjected=false;item.injectedLocationId=null;item.injectedAt=null;item.used=false},type==='threat'?'Menace rendue disponible':'Situation rendue disponible')}
@@ -747,5 +747,5 @@ $('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return
 $('#btnDeleteIllustrations').onclick=openIllustrationDeleteDialog;$('#btnAddIllustrationCategory').onclick=openIllustrationCategoryDialog;$('#btnMoveIllustrations').onclick=toggleIllustrationMoveMode;$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#btnCancelDeleteIllustrations').onclick=()=>$('#illustrationDeleteDialog').close();$('#btnConfirmDeleteIllustrations').onclick=confirmDeleteSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});$('#illustrationCategoryForm').onsubmit=async e=>{e.preventDefault();await createIllustrationCategory(new FormData(e.target).get('name'))};
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.5',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.6',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();
