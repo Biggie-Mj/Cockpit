@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Cockpit">
   <title>Cockpit V2 — Préparation D&D 5e</title>
-  <link rel="manifest" href="manifest.webmanifest?v=2.0.4">
+  <link rel="manifest" href="manifest.webmanifest?v=2.0.5">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.0.2">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2.0.2">
-  <link rel="stylesheet" href="styles.css?v=2.0.4">
+  <link rel="stylesheet" href="styles.css?v=2.0.5">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
       <div class="home-actions">
         <button id="btnHomeResume" class="home-primary"><span>Reprendre la dernière session</span><small id="homeResumeTitle">Aucune session en cours</small></button>
         <button id="btnHomeNew" class="home-secondary"><span class="home-action-icon"><img src="plus.png" class="ui-icon home-ui-icon" alt=""></span><span><strong>Créer une nouvelle session</strong><small>Commencer une préparation vierge</small></span></button>
-        <button id="btnHomeImport" class="home-secondary"><span class="home-action-icon">⇩</span><span><strong>Importer une sauvegarde</strong><small>Ouvrir un fichier Cockpit depuis Fichiers</small></span></button>
+        <button id="btnHomeImport" class="home-secondary"><span class="home-action-icon"><img src="fleche_bas.png" class="nav-ui-icon home-ui-icon" alt="" aria-hidden="true"></span><span><strong>Importer une sauvegarde</strong><small>Ouvrir un fichier Cockpit depuis Fichiers</small></span></button>
       </div>
       <div class="home-foot"><span>Disponible hors ligne une fois installée.</span><button id="btnHomeSessions" class="home-link">Sessions sauvegardées</button></div>
     </section>
@@ -105,8 +105,8 @@
           <button id="btnDeleteIllustrations" class="danger illustration-delete-btn" disabled>Supprimer</button>
           <button id="btnAddIllustrationCategory" class="illustration-category-btn"><img src="plus.png" class="ui-icon button-ui-icon" alt=""> Catégorie</button>
           <button id="btnMoveIllustrations" class="illustration-move-btn" disabled>Déplacer</button>
-          <button id="btnImportIllustrations" class="violet">⇩ Importer</button>
-          <button id="btnExportIllustrations" class="violet" disabled>↗ Exporter</button>
+          <button id="btnImportIllustrations" class="violet"><img src="fleche_bas.png" class="ui-icon button-ui-icon" alt="" aria-hidden="true"> Importer</button>
+          <button id="btnExportIllustrations" class="violet" disabled><img src="fleche_haut.png" class="ui-icon button-ui-icon" alt="" aria-hidden="true"> Exporter</button>
         </div>
       </div>
       <div id="illustrationsContent" class="illustrations-content"><div class="journal-empty">Chargement des illustrations…</div></div>
@@ -125,7 +125,7 @@
   <aside id="npcSheet" class="npc-sheet"><button id="btnCloseNpcSheet" class="sheet-close ui-icon-button" aria-label="Fermer"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button><div id="npcSheetContent"></div></aside>
 
   <dialog id="locationDialog" class="modal wide-modal"><form id="locationForm">
-    <div class="modal-head"><div><span class="eyebrow">LIEU VIVANT</span><h2 id="locationDialogTitle">Lieu</h2><p id="locationEditorHint" class="dialog-hint"></p></div><div class="modal-head-actions"><button type="button" id="btnImportLocationFromEditor" class="ghost import-head-btn">⇩ Importer un lieu</button><button type="button" class="icon-btn" data-close="locationDialog"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button></div></div>
+    <div class="modal-head"><div><span class="eyebrow">LIEU VIVANT</span><h2 id="locationDialogTitle">Lieu</h2><p id="locationEditorHint" class="dialog-hint"></p></div><div class="modal-head-actions"><button type="button" id="btnImportLocationFromEditor" class="ghost import-head-btn"><img src="fleche_bas.png" class="ui-icon button-ui-icon" alt="" aria-hidden="true"> Importer un lieu</button><button type="button" class="icon-btn" data-close="locationDialog"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button></div></div>
     <div class="form-grid three location-essential">
       <label class="span2">Nom<input name="name" required></label><label>Type<select name="tier"><option value="main">Principal</option><option value="reserve">Réserve</option></select></label>
       <label class="span3">Concept<input name="concept" placeholder="Une phrase"></label><label class="span3">Situation actuelle<textarea name="situation" rows="3"></textarea></label>
@@ -139,7 +139,7 @@
     <div class="modal-actions"><button type="button" id="btnDeleteLocation" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="locationDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
   </form></dialog>
 
-  <dialog id="npcDialog" class="modal"><form id="npcForm"><div class="modal-head"><div><span class="eyebrow">PNJ MOTEUR</span><h2 id="npcDialogTitle">PNJ</h2></div><div class="modal-head-actions"><button type="button" id="btnImportNpcFromEditor" class="ghost import-head-btn">⇩ Importer un PNJ</button><button type="button" class="icon-btn" data-close="npcDialog"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button></div></div><div class="form-grid"><label>Nom<input name="name" required></label><label>Rôle / sous-titre<input name="role"></label><label class="span2">Identité<input name="identity"></label><label>Veut<textarea name="wants" rows="3"></textarea></label><label>Craint<textarea name="fears" rows="3"></textarea></label><label>Sait<textarea name="knows" rows="3"></textarea></label><label>Cache<textarea name="hides" rows="3"></textarea></label><label class="span2">Trait de jeu<textarea name="trait" rows="3"></textarea></label></div><div class="modal-actions"><button type="button" id="btnDeleteNpc" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="npcDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
+  <dialog id="npcDialog" class="modal"><form id="npcForm"><div class="modal-head"><div><span class="eyebrow">PNJ MOTEUR</span><h2 id="npcDialogTitle">PNJ</h2></div><div class="modal-head-actions"><button type="button" id="btnImportNpcFromEditor" class="ghost import-head-btn"><img src="fleche_bas.png" class="ui-icon button-ui-icon" alt="" aria-hidden="true"> Importer un PNJ</button><button type="button" class="icon-btn" data-close="npcDialog"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button></div></div><div class="form-grid"><label>Nom<input name="name" required></label><label>Rôle / sous-titre<input name="role"></label><label class="span2">Identité<input name="identity"></label><label>Veut<textarea name="wants" rows="3"></textarea></label><label>Craint<textarea name="fears" rows="3"></textarea></label><label>Sait<textarea name="knows" rows="3"></textarea></label><label>Cache<textarea name="hides" rows="3"></textarea></label><label class="span2">Trait de jeu<textarea name="trait" rows="3"></textarea></label></div><div class="modal-actions"><button type="button" id="btnDeleteNpc" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="npcDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
 
   <dialog id="threadDialog" class="modal"><form id="threadForm"><div class="modal-head"><div><span class="eyebrow">FIL ROUGE</span><h2>Direction du monde</h2></div><button type="button" class="icon-btn" data-close="threadDialog"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button></div><div class="form-grid"><label class="span2">Que cherche la force active ?<textarea name="goal" rows="4"></textarea></label><label class="span2">Si les PJ ne font rien <small>Une ligne = une étape logique</small><textarea name="steps" rows="6"></textarea></label></div><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="threadDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
   <dialog id="strongDialog" class="modal"><form id="strongForm"><div class="modal-head"><div><span class="eyebrow">STRONG START</span><h2>Démarrer en mouvement</h2></div><button type="button" class="icon-btn" data-close="strongDialog"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button></div><label class="solo-label">Situation initiale<textarea name="text" rows="8"></textarea></label><div class="modal-actions"><span></span><span></span><button type="button" class="ghost" data-close="strongDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div></form></dialog>
@@ -161,7 +161,7 @@
 
   <dialog id="sessionsDialog" class="modal wide-modal">
     <div class="modal-head"><div><span class="eyebrow">SESSIONS</span><h2>Préparations et parties sauvegardées</h2><p class="dialog-hint">Une session « en cours » conserve exactement son état pour être reprise plus tard.</p></div><button type="button" class="icon-btn" data-close="sessionsDialog"><img src="fermer.png" class="ui-icon close-ui-icon" alt=""></button></div>
-    <div class="session-save-bar"><input id="sessionSaveName" placeholder="Nom de la session"><button id="btnSaveSession" class="primary"><img src="sauvegarde.png" class="ui-icon button-ui-icon" alt=""> Sauvegarder l’état actuel</button><button id="btnImportSavedSession" class="violet">⇩ Importer</button></div>
+    <div class="session-save-bar"><input id="sessionSaveName" placeholder="Nom de la session"><button id="btnSaveSession" class="primary"><img src="sauvegarde.png" class="ui-icon button-ui-icon" alt=""> Sauvegarder l’état actuel</button><button id="btnImportSavedSession" class="violet"><img src="fleche_bas.png" class="ui-icon button-ui-icon" alt="" aria-hidden="true"> Importer</button></div>
     <div class="session-slots-meta"><span id="sessionSlotCount">0 / 15 sauvegardes</span><small>15 emplacements maximum · seuls les emplacements utilisés sont affichés</small></div>
     <div id="saveChoicePanel" class="save-choice-panel hidden"></div>
     <div id="savedSessionsList" class="saved-session-list"></div>
@@ -203,6 +203,6 @@
   <input id="npcImportFile" type="file" accept=".json,application/json" hidden>
   <input id="locationImportFile" type="file" accept=".json,application/json" hidden>
   <input id="illustrationImportFile" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple hidden>
-  <script src="app.js?v=2.0.4"></script>
+  <script src="app.js?v=2.0.5"></script>
 </body>
 </html>

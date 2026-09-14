@@ -1,9 +1,9 @@
-const CACHE='cockpit-v2-icons-timer-1';
+const CACHE='cockpit-v2-icons-timer-2';
 const SHELL=[
-  './','./index.html','./styles.css?v=2.0.4','./app.js?v=2.0.4','./manifest.webmanifest?v=2.0.4'
+  './','./index.html','./styles.css?v=2.0.5','./app.js?v=2.0.5','./manifest.webmanifest?v=2.0.5'
 ];
 const MEDIA=[
-  './menu-background-v1.jpg?v=2.0.2','./icon-512.png','./icon-192.png','./icon-64.png','./apple-touch-icon.png','./favicon-32.png','./music-note.png','./loupe.png','./annuler.png','./menu_trois_points.png','./coche.png','./plus.png','./jouer.png','./sauvegarde.png','./fermer.png','./crayon.png','./actualiser.png','./fleche_gauche.png','./parchemin.png','./d20.png','./rouage.png','./grimoire.png','./oeil.png','./plume.png','./etoile.png','./groupe.png','./eclair.png','./point_exclamation.png','./marqueur_carte.png','./epingle.png','./sablier.png'
+  './menu-background-v1.jpg?v=2.0.2','./icon-512.png','./icon-192.png','./icon-64.png','./apple-touch-icon.png','./favicon-32.png','./music-note.png','./loupe.png','./annuler.png','./menu_trois_points.png','./coche.png','./plus.png','./jouer.png','./sauvegarde.png','./fermer.png','./crayon.png','./actualiser.png','./fleche_gauche.png','./parchemin.png','./d20.png','./rouage.png','./grimoire.png','./oeil.png','./plume.png','./etoile.png','./groupe.png','./eclair.png','./point_exclamation.png','./marqueur_carte.png','./epingle.png','./sablier.png','./fleche_bas.png','./fleche_haut.png','./spotlight.png','./bulle_dialogue.png','./magie.png','./cerveau.png'
 ];
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
