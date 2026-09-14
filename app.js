@@ -1,4 +1,4 @@
-const APP_VERSION='2.0';
+const APP_VERSION='2.0.3';
 const STORAGE_KEY='cockpit-v1';
 const LEGACY_KEYS=['dm-cockpit-v05','dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
 const BACKUP_KEY='cockpit-v1-backups';
@@ -16,7 +16,7 @@ const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'2.0',
+  version:'2.0.3',
   title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
   activeLocationId:'l1',
@@ -122,6 +122,7 @@ let spotlightFlashId=null;
 let recentlyRevealedSecretId=null;
 let homeOpen=true;
 let pendingImportedSession=null;
+let activeMusicLocationId=null;
 
 function normalize(s){
   const base=EMPTY(), out={...base,...s};
@@ -138,7 +139,7 @@ function normalize(s){
     p.spotlightCount=Math.max(0,Number.isFinite(Number(p.spotlightCount))?Number(p.spotlightCount):(p.done?1:0));
     delete p.done; delete p.spotlight;
   });
-  out.locations.forEach(l=>{l.npcIds=Array.isArray(l.npcIds)?l.npcIds:[];l.visuals=Array.isArray(l.visuals)?l.visuals:[];if(!l.status)l.status='unvisited'});
+  out.locations.forEach(l=>{l.npcIds=Array.isArray(l.npcIds)?l.npcIds:[];l.visuals=Array.isArray(l.visuals)?l.visuals:[];l.spotifyUrl=String(l.spotifyUrl||'').trim();if(!l.status)l.status='unvisited'});
   out.secrets.forEach(s=>{s.revealed=!!s.revealed;s.method=s.method||''});
   out.situations.forEach(x=>{if(typeof x.injected!=='boolean')x.injected=!!x.used;if(typeof x.activeInjected!=='boolean')x.activeInjected=!!x.injected;if(!x.injectedLocationId)x.injectedLocationId=x.injected?(out.activeLocationId||null):null});
   out.threats.forEach(x=>{if(typeof x.injected!=='boolean')x.injected=!!x.used;if(typeof x.activeInjected!=='boolean')x.activeInjected=!!x.injected;if(!x.injectedLocationId)x.injectedLocationId=x.injected?(out.activeLocationId||null):null});
@@ -277,7 +278,8 @@ function renderLiveLocation(l){
   const sit=state.situations.filter(x=>x.injected&&x.injectedLocationId===l.id),thr=state.threats.filter(x=>x.injected&&x.injectedLocationId===l.id);
   const npcStrip=npcs.length?`<div class="live-npc-strip"><span class="eyebrow">PNJ PRÉSENTS</span><div class="live-npc-list">${npcs.map(n=>`<button class="live-npc" data-live-npc="${n.id}"><span class="avatar">${initials(n.name)}</span><strong>${esc(n.name)}</strong></button>`).join('')}</div></div>`:'';
   const injections=(sit.length||thr.length)?`<div class="live-injections"><div class="injection-strip">${thr.map(t=>`<button class="injection-chip threat ${t.activeInjected?'active':'inactive'}" data-toggle-injection="threat:${t.id}"><span class="eyebrow injection-label">MENACE INJECTÉE</span><b>⚠ ${esc(t.name)}</b><small>${esc(t.summary||'')}</small></button>`).join('')}${sit.map(s=>`<button class="injection-chip situation ${s.activeInjected?'active':'inactive'}" data-toggle-injection="situation:${s.id}"><span class="eyebrow injection-label">SITUATION INJECTÉE</span><b>✦ ${esc(s.text)}</b></button>`).join('')}</div></div>`:'';
-  el.innerHTML=`<div class="live-hero"><div><span class="eyebrow">${isCurrent?'LIEU ACTUEL':'APERÇU · LE JEU EST AILLEURS'}</span><h2>${esc(l.name)}</h2><p class="concept">${esc(l.concept||'')}</p>${npcStrip}</div><div class="live-actions">${!isCurrent?`<button id="btnMakeCurrent" class="primary">● Rendre actuel</button><button id="btnReturnCurrent" class="ghost">↩ Actuel</button>`:''}<button id="btnEditPreview" class="ghost edit-pencil" aria-label="Modifier le lieu" title="Modifier le lieu"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z" stroke-width="1.8" stroke-linejoin="round"/><path d="m13.8 6.2 4 4" stroke-width="1.8"/></svg></button></div></div>${injections}
+  const musicButton=l.spotifyUrl?`<button id="btnLocationMusic" class="location-music-btn ${activeMusicLocationId===l.id?'active':''}" aria-label="Lancer le son Spotify de ${esc(l.name)}" title="Lancer la musique / ambiance"><img src="music-note.png" alt=""></button>`:'';
+  el.innerHTML=`<div class="live-hero"><div><span class="eyebrow">${isCurrent?'LIEU ACTUEL':'APERÇU · LE JEU EST AILLEURS'}</span><div class="live-title-row">${musicButton}<h2>${esc(l.name)}</h2></div><p class="concept">${esc(l.concept||'')}</p>${npcStrip}</div><div class="live-actions">${!isCurrent?`<button id="btnMakeCurrent" class="primary">● Rendre actuel</button><button id="btnReturnCurrent" class="ghost">↩ Actuel</button>`:''}<button id="btnEditPreview" class="ghost edit-pencil" aria-label="Modifier le lieu" title="Modifier le lieu"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z" stroke-width="1.8" stroke-linejoin="round"/><path d="m13.8 6.2 4 4" stroke-width="1.8"/></svg></button></div></div>${injections}
   <div class="live-core">
     <article><h3>Qu’est-ce qu’on voit ?</h3>${visuals.length?`<ul>${visuals.map(v=>`<li>${esc(v)}</li>`).join('')}</ul>`:'<p class="muted">À improviser.</p>'}</article>
     <article class="impulse"><h3>Impulsion</h3><p>${esc(l.impulse||'Comment ce lieu tend-il à agir ?')}</p></article>
@@ -288,6 +290,7 @@ function renderLiveLocation(l){
   </div>
   <details class="location-context"><summary>Contexte du lieu</summary><div class="context-grid">${l.faction?`<div><b>Faction</b><p>${esc(l.faction)}</p></div>`:''}${l.localPlot?`<div><b>Local</b><p>${esc(l.localPlot)}</p></div>`:''}${l.regionalPlot?`<div><b>Régional</b><p>${esc(l.regionalPlot)}</p></div>`:''}${l.mainPlot?`<div><b>Fil rouge</b><p>${esc(l.mainPlot)}</p></div>`:''}</div></details>`;
   $('#btnEditPreview').onclick=()=>openLocationEditor(l.id);if($('#btnMakeCurrent'))$('#btnMakeCurrent').onclick=()=>makeCurrentLocation(l.id);if($('#btnReturnCurrent'))$('#btnReturnCurrent').onclick=()=>{state.previewLocationId=state.activeLocationId;persist();renderTable()};
+  const musicBtn=$('#btnLocationMusic');if(musicBtn)musicBtn.onclick=()=>{const url=String(l.spotifyUrl||'').trim();if(!/^(https?:\/\/|spotify:)/i.test(url))return toast('Lien Spotify invalide');activeMusicLocationId=l.id;musicBtn.classList.add('active');const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove()};
   $$('[data-live-npc]').forEach(b=>b.onclick=()=>showNpcSheet(b.dataset.liveNpc));$$('[data-toggle-injection]').forEach(b=>b.onclick=()=>toggleInjectedHighlight(b.dataset.toggleInjection));
 }
 function renderTableThread(){
@@ -338,7 +341,7 @@ function showNpcSheet(id){
 function closeNpcSheet(){$('#npcSheet').classList.remove('open');$('#sheetScrim').classList.add('hidden')}
 
 function openLocationEditor(id=null){
-  editingLocationId=id;const l=id?state.locations.find(x=>x.id===id):{name:'',tier:'main',concept:'',visuals:[],impulse:'',situation:'',faction:'',localPlot:'',regionalPlot:'',mainPlot:'',danger:'',reward:'',ifIgnored:''};const f=$('#locationForm');for(const k of ['name','tier','concept','impulse','situation','faction','localPlot','regionalPlot','mainPlot','danger','reward','ifIgnored'])f.elements[k].value=l[k]||'';f.elements.visuals.value=(l.visuals||[]).join('\n');$('#locationDialogTitle').textContent=id?`Modifier · ${l.name}`:'Nouveau lieu vivant';$('#btnDeleteLocation').classList.toggle('hidden',!id);updateLocationEditorMode();$('#locationDialog').showModal();
+  editingLocationId=id;const l=id?state.locations.find(x=>x.id===id):{name:'',tier:'main',concept:'',visuals:[],impulse:'',situation:'',faction:'',localPlot:'',regionalPlot:'',mainPlot:'',danger:'',reward:'',ifIgnored:'',spotifyUrl:''};const f=$('#locationForm');for(const k of ['name','tier','concept','impulse','situation','faction','localPlot','regionalPlot','mainPlot','danger','reward','ifIgnored','spotifyUrl'])f.elements[k].value=l[k]||'';f.elements.visuals.value=(l.visuals||[]).join('\n');$('#locationDialogTitle').textContent=id?`Modifier · ${l.name}`:'Nouveau lieu vivant';$('#btnDeleteLocation').classList.toggle('hidden',!id);updateLocationEditorMode();$('#locationDialog').showModal();
 }
 function updateLocationEditorMode(){const tier=$('#locationForm').elements.tier.value;$('#mainLocationFields').classList.toggle('hidden',tier==='reserve');$('#locationEditorHint').textContent=tier==='reserve'?'Réserve : nom, concept et situation suffisent.':'Principal : prépare seulement ce qui aide à improviser.'}
 function openNpcEditor(id=null){editingNpcId=id;const n=id?state.npcs.find(x=>x.id===id):{name:'',role:'',identity:'',wants:'',fears:'',knows:'',hides:'',trait:''};const f=$('#npcForm');for(const k of ['name','role','identity','wants','fears','knows','hides','trait'])f.elements[k].value=n[k]||'';$('#npcDialogTitle').textContent=id?`Modifier · ${n.name}`:'Nouveau PNJ';$('#btnDeleteNpc').classList.toggle('hidden',!id);$('#npcDialog').showModal()}
@@ -560,7 +563,7 @@ function parseNpcImport(parsed){
 }
 function parseLocationImport(parsed){
   const raw=Array.isArray(parsed)?parsed:Array.isArray(parsed?.locations)?parsed.locations:parsed?.location?[parsed.location]:(parsed&&typeof parsed==='object'&&parsed.name?[parsed]:[]);
-  return raw.map(l=>({id:uid('l'),name:String(l?.name||'').trim(),tier:l?.tier==='reserve'?'reserve':'main',status:'unvisited',concept:String(l?.concept||'').trim(),visuals:Array.isArray(l?.visuals)?l.visuals.map(x=>String(x).trim()).filter(Boolean):lines(l?.visuals),impulse:String(l?.impulse||'').trim(),situation:String(l?.situation||'').trim(),faction:String(l?.faction||'').trim(),localPlot:String(l?.localPlot||'').trim(),regionalPlot:String(l?.regionalPlot||'').trim(),mainPlot:String(l?.mainPlot||'').trim(),danger:String(l?.danger||'').trim(),reward:String(l?.reward||'').trim(),ifIgnored:String(l?.ifIgnored||'').trim(),npcIds:[]})).filter(l=>l.name);
+  return raw.map(l=>({id:uid('l'),name:String(l?.name||'').trim(),tier:l?.tier==='reserve'?'reserve':'main',status:'unvisited',concept:String(l?.concept||'').trim(),visuals:Array.isArray(l?.visuals)?l.visuals.map(x=>String(x).trim()).filter(Boolean):lines(l?.visuals),impulse:String(l?.impulse||'').trim(),situation:String(l?.situation||'').trim(),faction:String(l?.faction||'').trim(),localPlot:String(l?.localPlot||'').trim(),regionalPlot:String(l?.regionalPlot||'').trim(),mainPlot:String(l?.mainPlot||'').trim(),danger:String(l?.danger||'').trim(),reward:String(l?.reward||'').trim(),ifIgnored:String(l?.ifIgnored||'').trim(),spotifyUrl:String(l?.spotifyUrl||'').trim(),npcIds:[]})).filter(l=>l.name);
 }
 async function importNpcFile(file){const parsed=JSON.parse(await file.text()),items=parseNpcImport(parsed);if(!items.length)throw new Error('Aucun PNJ valide');commit(()=>{state.npcs.push(...items);state.libraryTab='npcs'},`${items.length} PNJ importé${items.length>1?'s':''}`);if($('#npcDialog')?.open)$('#npcDialog').close();if(state.view==='library')renderLibrary()}
 async function importLocationFile(file){const parsed=JSON.parse(await file.text()),items=parseLocationImport(parsed);if(!items.length)throw new Error('Aucun lieu valide');commit(()=>{state.locations.push(...items);state.previewLocationId=items[0].id;state.libraryTab='locations'},`${items.length} lieu${items.length>1?'x':''} importé${items.length>1?'s':''}`);if($('#locationDialog')?.open)$('#locationDialog').close();if(state.view==='library')renderLibrary()}
@@ -568,11 +571,14 @@ async function importLocationFile(file){const parsed=JSON.parse(await file.text(
 
 // ===== V2 · Illustrations locales (IndexedDB, hors sauvegardes JSON) =====
 const ILLUSTRATION_DB_NAME='cockpit-illustrations-v2';
-const ILLUSTRATION_DB_VERSION=1;
+const ILLUSTRATION_DB_VERSION=2;
 const ILLUSTRATION_STORE='illustrations';
-const ILLUSTRATION_CATEGORIES=[
+const ILLUSTRATION_META_STORE='meta';
+const DEFAULT_ILLUSTRATION_CATEGORIES=[
   ['npc','PNJ'],['adversary','Adversaires'],['location','Lieux'],['object','Objets'],['misc','Divers']
 ];
+let illustrationCategories=[...DEFAULT_ILLUSTRATION_CATEGORIES];
+let illustrationCustomCategories=[];
 let illustrationDbPromise=null;
 let illustrationRecords=[];
 let illustrationSelectedIds=new Set();
@@ -580,20 +586,22 @@ let illustrationObjectUrls=[];
 let pendingIllustrationFiles=[];
 let illustrationMoveMode=false;
 let illustrationRenderToken=0;
-function illustrationCategoryLabel(value){return Object.fromEntries(ILLUSTRATION_CATEGORIES)[value]||'Divers'}
-function illustrationCategoryOptions(selected='misc'){return ILLUSTRATION_CATEGORIES.map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
+function illustrationCategoryLabel(value){return Object.fromEntries(illustrationCategories)[value]||'Divers'}
+function illustrationCategoryOptions(selected='misc'){return illustrationCategories.map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${esc(label)}</option>`).join('')}
 function cleanupIllustrationObjectUrls(){illustrationObjectUrls.forEach(url=>URL.revokeObjectURL(url));illustrationObjectUrls=[]}
 function openIllustrationDb(){
   if(illustrationDbPromise)return illustrationDbPromise;
   illustrationDbPromise=new Promise((resolve,reject)=>{
     if(!('indexedDB' in window)){reject(new Error('IndexedDB indisponible'));return}
     const req=indexedDB.open(ILLUSTRATION_DB_NAME,ILLUSTRATION_DB_VERSION);
-    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ILLUSTRATION_STORE)){const store=db.createObjectStore(ILLUSTRATION_STORE,{keyPath:'id'});store.createIndex('category','category',{unique:false});store.createIndex('createdAt','createdAt',{unique:false})}};
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ILLUSTRATION_STORE)){const store=db.createObjectStore(ILLUSTRATION_STORE,{keyPath:'id'});store.createIndex('category','category',{unique:false});store.createIndex('createdAt','createdAt',{unique:false})}if(!db.objectStoreNames.contains(ILLUSTRATION_META_STORE))db.createObjectStore(ILLUSTRATION_META_STORE,{keyPath:'key'})};
     req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Impossible d’ouvrir la bibliothèque d’illustrations'));
   });
   return illustrationDbPromise;
 }
 async function getAllIllustrations(){const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readonly'),req=tx.objectStore(ILLUSTRATION_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)})}
+async function getIllustrationCustomCategories(){const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_META_STORE,'readonly'),req=tx.objectStore(ILLUSTRATION_META_STORE).get('categories');req.onsuccess=()=>resolve(Array.isArray(req.result?.value)?req.result.value:[]);req.onerror=()=>reject(req.error)})}
+async function putIllustrationCustomCategories(categories){const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_META_STORE,'readwrite');tx.objectStore(ILLUSTRATION_META_STORE).put({key:'categories',value:categories});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Enregistrement des catégories interrompu'))})}
 async function putIllustrations(records){if(!records.length)return;const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readwrite'),store=tx.objectStore(ILLUSTRATION_STORE);records.forEach(record=>store.put(record));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Import interrompu'))})}
 async function deleteIllustrations(ids){if(!ids.length)return;const db=await openIllustrationDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ILLUSTRATION_STORE,'readwrite'),store=tx.objectStore(ILLUSTRATION_STORE);ids.forEach(id=>store.delete(id));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Suppression interrompue'))})}
 function isSupportedIllustrationFile(file){const type=String(file?.type||'').toLowerCase();return type==='image/png'||type==='image/jpeg'||/\.(png|jpe?g)$/i.test(String(file?.name||''))}
@@ -605,11 +613,12 @@ async function renderIllustrations(){
   const token=++illustrationRenderToken;
   content.innerHTML='<div class="journal-empty">Chargement des illustrations…</div>';
   try{
-    const records=await getAllIllustrations();if(token!==illustrationRenderToken)return;
+    const [records,customCategories]=await Promise.all([getAllIllustrations(),getIllustrationCustomCategories()]);if(token!==illustrationRenderToken)return;
+    illustrationCustomCategories=customCategories.filter(x=>Array.isArray(x)&&x.length===2&&String(x[0]||'').trim()&&String(x[1]||'').trim());illustrationCategories=[...DEFAULT_ILLUSTRATION_CATEGORIES,...illustrationCustomCategories];
     illustrationRecords=records.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
     const validIds=new Set(illustrationRecords.map(x=>x.id));illustrationSelectedIds=new Set([...illustrationSelectedIds].filter(id=>validIds.has(id)));
     cleanupIllustrationObjectUrls();
-    const categories=ILLUSTRATION_CATEGORIES.map(([value,label],catIndex)=>{
+    const categories=illustrationCategories.map(([value,label],catIndex)=>{
       const arr=illustrationRecords.filter(x=>(x.category||'misc')===value),sentCount=arr.filter(x=>x.sentAt).length;
       const cards=arr.map(item=>{const url=URL.createObjectURL(item.blob);illustrationObjectUrls.push(url);const selected=illustrationSelectedIds.has(item.id);return `<button type="button" class="illustration-card ${item.sentAt?'sent':''} ${selected?'selected':''} ${selected&&illustrationMoveMode?'moving':''}" data-illustration-id="${item.id}" aria-pressed="${selected?'true':'false'}"><img src="${url}" alt="${esc(item.name||label)}"><span class="illustration-card-footer"><strong>${esc(item.name||'Illustration')}</strong><small>${item.sentAt?`Envoyée · ${new Date(item.sentAt).toLocaleDateString('fr-FR')}`:'Jamais envoyée'}</small></span></button>`}).join('')||'<div class="illustration-empty">Aucune illustration dans cette catégorie.</div>';
       return `<details class="illustration-drawer" ${catIndex===0||arr.length?'open':''} data-illustration-drawer="${value}"><summary><span class="illustration-drawer-title"><strong>${label}</strong><span class="illustration-drawer-count">${arr.length}</span></span><span class="illustration-drawer-meta">${sentCount?`${sentCount} envoyée${sentCount>1?'s':''}`:'—'}</span></summary><div class="illustration-grid">${cards}</div></details>`;
@@ -627,7 +636,7 @@ function toggleIllustrationMoveMode(){
 }
 async function moveSelectedIllustrations(category){
   if(!illustrationMoveMode||!illustrationSelectedIds.size)return;
-  if(!ILLUSTRATION_CATEGORIES.some(([value])=>value===category))return;
+  if(!illustrationCategories.some(([value])=>value===category))return;
   const selected=illustrationRecords.filter(item=>illustrationSelectedIds.has(item.id));
   if(!selected.length){illustrationMoveMode=false;renderIllustrationSelectionMeta();return}
   selected.forEach(item=>item.category=category);
@@ -638,6 +647,13 @@ async function moveSelectedIllustrations(category){
     await renderIllustrations();
     toast(`${count} illustration${count>1?'s':''} déplacée${count>1?'s':''} vers ${label}`);
   }catch(err){console.error('Déplacement illustrations',err);toast('Impossible de déplacer la sélection')}
+}
+function openIllustrationCategoryDialog(){const f=$('#illustrationCategoryForm');f.reset();$('#illustrationCategoryDialog').showModal();setTimeout(()=>f.elements.name.focus(),40)}
+async function createIllustrationCategory(name){
+  const label=String(name||'').trim();if(!label)return toast('Donne un nom à la catégorie');
+  if(illustrationCategories.some(([,existing])=>String(existing).localeCompare(label,'fr',{sensitivity:'accent'})===0))return toast('Cette catégorie existe déjà');
+  const value=uid('cat');const next=[...illustrationCustomCategories,[value,label]];
+  try{await putIllustrationCustomCategories(next);illustrationCustomCategories=next;illustrationCategories=[...DEFAULT_ILLUSTRATION_CATEGORIES,...next];$('#illustrationCategoryDialog').close();await renderIllustrations();toast(`Catégorie « ${label} » ajoutée`)}catch(err){console.error('Création catégorie',err);toast('Impossible de créer cette catégorie')}
 }
 function openIllustrationImporter(){const input=$('#illustrationImportFile');if(input){input.value='';input.click()}}
 function prepareIllustrationImport(files){
@@ -686,7 +702,7 @@ function renderInjection(){const s=state.situations,t=state.threats;const row=(k
 $$('[data-close]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.close).close());['spotlightDialog','strongStartPlayDialog'].forEach(id=>{const d=$('#'+id);d.addEventListener('click',e=>{if(e.target===d)d.close()})});$('#sheetScrim').onclick=closeNpcSheet;$('#btnCloseNpcSheet').onclick=closeNpcSheet;
 
 $('#locationForm').elements.tier.onchange=updateLocationEditorMode;
-$('#locationForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),data={name:String(f.get('name')).trim(),tier:f.get('tier'),concept:String(f.get('concept')||'').trim(),visuals:lines(f.get('visuals')),impulse:String(f.get('impulse')||'').trim(),situation:String(f.get('situation')||'').trim(),faction:String(f.get('faction')||'').trim(),localPlot:String(f.get('localPlot')||'').trim(),regionalPlot:String(f.get('regionalPlot')||'').trim(),mainPlot:String(f.get('mainPlot')||'').trim(),danger:String(f.get('danger')||'').trim(),reward:String(f.get('reward')||'').trim(),ifIgnored:String(f.get('ifIgnored')||'').trim()};commit(()=>{if(editingLocationId){Object.assign(state.locations.find(l=>l.id===editingLocationId),data)}else{const l={id:uid('l'),...data,status:'unvisited',npcIds:[]};state.locations.push(l);state.previewLocationId=l.id}},'Lieu enregistré');$('#locationDialog').close()};$('#btnDeleteLocation').onclick=()=>{if(!editingLocationId||!confirm('Supprimer ce lieu ?'))return;commit(()=>{state.locations=state.locations.filter(l=>l.id!==editingLocationId);if(state.activeLocationId===editingLocationId)state.activeLocationId=null;if(state.previewLocationId===editingLocationId)state.previewLocationId=state.activeLocationId||state.locations[0]?.id||null},'Lieu supprimé');$('#locationDialog').close()};
+$('#locationForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),data={name:String(f.get('name')).trim(),tier:f.get('tier'),concept:String(f.get('concept')||'').trim(),visuals:lines(f.get('visuals')),impulse:String(f.get('impulse')||'').trim(),situation:String(f.get('situation')||'').trim(),faction:String(f.get('faction')||'').trim(),localPlot:String(f.get('localPlot')||'').trim(),regionalPlot:String(f.get('regionalPlot')||'').trim(),mainPlot:String(f.get('mainPlot')||'').trim(),danger:String(f.get('danger')||'').trim(),reward:String(f.get('reward')||'').trim(),ifIgnored:String(f.get('ifIgnored')||'').trim(),spotifyUrl:String(f.get('spotifyUrl')||'').trim()};commit(()=>{if(editingLocationId){Object.assign(state.locations.find(l=>l.id===editingLocationId),data)}else{const l={id:uid('l'),...data,status:'unvisited',npcIds:[]};state.locations.push(l);state.previewLocationId=l.id}},'Lieu enregistré');$('#locationDialog').close()};$('#btnDeleteLocation').onclick=()=>{if(!editingLocationId||!confirm('Supprimer ce lieu ?'))return;commit(()=>{state.locations=state.locations.filter(l=>l.id!==editingLocationId);if(state.activeLocationId===editingLocationId)state.activeLocationId=null;if(state.previewLocationId===editingLocationId)state.previewLocationId=state.activeLocationId||state.locations[0]?.id||null},'Lieu supprimé');$('#locationDialog').close()};
 $('#npcForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),data={};for(const k of ['name','role','identity','wants','fears','knows','hides','trait'])data[k]=String(f.get(k)||'').trim();commit(()=>{if(editingNpcId)Object.assign(state.npcs.find(n=>n.id===editingNpcId),data);else state.npcs.push({id:uid('n'),...data})},'PNJ enregistré');$('#npcDialog').close()};$('#btnDeleteNpc').onclick=()=>{if(!editingNpcId||!confirm('Supprimer ce PNJ ?'))return;commit(()=>{state.npcs=state.npcs.filter(n=>n.id!==editingNpcId);state.locations.forEach(l=>l.npcIds=(l.npcIds||[]).filter(id=>id!==editingNpcId))},'PNJ supprimé');$('#npcDialog').close()};
 $('#threadForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),goal=String(f.get('goal')||'').trim(),newLines=lines(f.get('steps'));commit(()=>{const old=state.thread.steps||[];state.thread.goal=goal;state.thread.steps=newLines.map((text,i)=>({id:old[i]?.id||uid('ts'),text,done:old[i]?.text===text?!!old[i].done:false}))},'Fil rouge enregistré');$('#threadDialog').close()};$('#strongForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);commit(()=>state.strongStart.text=String(f.get('text')||'').trim(),'Strong Start enregistré');$('#strongDialog').close()};
 $('#btnAddPlayerRow').onclick=()=>addPlayerRow();$('#playersForm').onsubmit=e=>{e.preventDefault();const arr=$$('#playersEditor .player-editor-row').map(row=>{const id=row.dataset.playerId||uid('p'),old=state.players.find(p=>p.id===id);return {id,name:row.querySelector('[data-pname]').value.trim(),spotlightIdeas:old?.spotlightIdeas||[],spotlightCount:old?.spotlightCount||0}}).filter(p=>p.name);commit(()=>state.players=arr,'Personnages enregistrés');$('#playersDialog').close()};$('#spotlightForm').onsubmit=e=>{e.preventDefault();const p=state.players.find(x=>x.id===spotlightEditingId);if(!p)return;const ideas=$$('#spotlightIdeaRows [data-spotlight-idea]').map(x=>x.value.trim()).filter(Boolean);commit(()=>p.spotlightIdeas=ideas,'Spotlight mis à jour');$('#spotlightDialog').close()};$('#btnAddSpotlightIdea').onclick=()=>addSpotlightIdeaRow('');
@@ -698,8 +714,8 @@ $$('.library-tab').forEach(b=>b.onclick=()=>{state.libraryTab=b.dataset.library;
 $('#npcImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importNpcFile(file)}catch(err){console.error(err);toast('Fichier PNJ incompatible')}e.target.value=''};
 $('#locationImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importLocationFile(file)}catch(err){console.error(err);toast('Fichier lieu incompatible')}e.target.value=''};
 $('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnImportSavedSession').onclick=()=>$('#savedSessionImportFile').click();$('#savedSessionImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{await importSavedSessionFile(file)}catch(err){console.error(err);toast('Sauvegarde incompatible')}e.target.value=''};$('#btnClear').onclick=()=>{if(confirm('Créer une préparation vide ?')){snapshot();state=EMPTY();persist();render();toast('Nouvelle préparation créée')}};
-$('#btnDeleteIllustrations').onclick=openIllustrationDeleteDialog;$('#btnMoveIllustrations').onclick=toggleIllustrationMoveMode;$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#btnCancelDeleteIllustrations').onclick=()=>$('#illustrationDeleteDialog').close();$('#btnConfirmDeleteIllustrations').onclick=confirmDeleteSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});
+$('#btnDeleteIllustrations').onclick=openIllustrationDeleteDialog;$('#btnAddIllustrationCategory').onclick=openIllustrationCategoryDialog;$('#btnMoveIllustrations').onclick=toggleIllustrationMoveMode;$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#btnCancelDeleteIllustrations').onclick=()=>$('#illustrationDeleteDialog').close();$('#btnConfirmDeleteIllustrations').onclick=confirmDeleteSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});$('#illustrationCategoryForm').onsubmit=async e=>{e.preventDefault();await createIllustrationCategory(new FormData(e.target).get('name'))};
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.2',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.3',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();

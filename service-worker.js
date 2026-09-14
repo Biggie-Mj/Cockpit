@@ -1,9 +1,9 @@
-const CACHE='cockpit-v2-illustrations-3';
+const CACHE='cockpit-v2-illustrations-4';
 const SHELL=[
-  './','./index.html','./styles.css?v=2.0.2','./app.js?v=2.0.2','./manifest.webmanifest?v=2.0.2'
+  './','./index.html','./styles.css?v=2.0.3','./app.js?v=2.0.3','./manifest.webmanifest?v=2.0.3'
 ];
 const MEDIA=[
-  './menu-background-v1.jpg?v=2.0.2','./icon-512.png','./icon-192.png','./icon-64.png','./apple-touch-icon.png','./favicon-32.png'
+  './menu-background-v1.jpg?v=2.0.2','./icon-512.png','./icon-192.png','./icon-64.png','./apple-touch-icon.png','./favicon-32.png','./music-note.png'
 ];
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{

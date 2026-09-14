@@ -237,3 +237,33 @@ button,.location-tile,.rail-location,.ammo-line,.prep-secret,.context-card,.libr
 /* Le passage en mode Déplacer recolore immédiatement toute la sélection, sans devoir la resélectionner. */
 .illustrations-panel.move-mode .illustration-card.selected,.illustrations-panel.move-mode .illustration-card.sent.selected{outline:3px solid #61b978!important;outline-offset:-4px!important;box-shadow:0 0 0 2px rgba(97,185,120,.4),0 0 20px rgba(97,185,120,.25)!important}
 .illustrations-panel.move-mode .illustration-card.selected::before{border-color:#a8e0b6!important;background:#36784a!important;color:#fff!important}
+
+
+/* ===== V2.0.3 — Illustrations extensibles, catégories personnalisées, sons de lieux ===== */
+/* Le défilement appartient à la vue entière : chaque tiroir prend toute la hauteur nécessaire
+   aux images qu'il contient, puis les catégories suivantes descendent naturellement. */
+.illustrations-shell{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch}
+.illustrations-panel{height:auto!important;min-height:100%!important;overflow:visible!important}
+.illustrations-content{flex:0 0 auto!important;min-height:auto!important;overflow:visible!important;padding-bottom:18px!important}
+.illustration-drawer,.illustration-drawer[open]{height:auto!important;max-height:none!important;overflow:hidden!important}
+.illustration-drawer[open]>.illustration-grid{height:auto!important;max-height:none!important;overflow:visible!important}
+.illustration-grid{height:auto!important;max-height:none!important;overflow:visible!important;grid-auto-rows:max-content!important;align-items:start!important}
+.illustration-card{height:auto!important;max-height:none!important;overflow:hidden!important}
+.illustration-card img{display:block!important;width:100%!important;height:auto!important;max-height:none!important;object-fit:contain!important}
+
+.illustrations-head-actions .illustration-category-btn,.illustration-category-btn{min-width:104px;border-color:#4e84b4;background:linear-gradient(180deg,#315d84,#1e3e5c);color:#e2f2ff;font-weight:850}
+.illustrations-head-actions .illustration-category-btn:active,.illustration-category-btn:active{border-color:#78addb;background:linear-gradient(180deg,#3d729f,#285272);box-shadow:0 0 0 1px rgba(89,156,211,.28),0 0 18px rgba(66,137,195,.18)}
+.illustration-category-actions .illustration-category-btn{min-width:100px}
+
+.illustration-delete-actions{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important;padding:11px 12px!important}
+.illustration-delete-actions button{width:100%!important;min-width:0!important;min-height:48px!important;font-weight:900}
+.illustration-delete-actions .illustration-no-btn{border-color:#4f8c62;background:linear-gradient(180deg,#315f40,#1e422b);color:#e1f7e7}
+.illustration-delete-actions .illustration-no-btn:active{border-color:#7bc18f;background:linear-gradient(180deg,#427a52,#285839)}
+
+.live-title-row{display:flex;align-items:center;gap:9px;min-width:0}
+.live-title-row h2{min-width:0}
+.location-music-btn{flex:0 0 36px;width:36px;min-width:36px;height:36px;min-height:36px;padding:4px;border-radius:10px;border:1px solid #5a4631;background:#15100d;display:grid;place-items:center;box-shadow:none;transition:.16s}
+.location-music-btn img{display:block;width:27px;height:27px;object-fit:contain;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));transition:.16s}
+.location-music-btn.active{border-color:#d9aa57;background:radial-gradient(circle,#5c421f,#2a1c10);box-shadow:0 0 0 1px rgba(240,204,133,.42),0 0 18px rgba(215,168,91,.32)}
+.location-music-btn.active img{filter:brightness(1.18) saturate(1.2) drop-shadow(0 0 6px rgba(240,204,133,.72))}
+@media(max-width:1180px){.illustrations-head-actions .illustration-category-btn{min-width:92px}}

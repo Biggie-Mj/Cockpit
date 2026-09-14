@@ -46,3 +46,10 @@ La V2 conserve les fonctions de la V1.6 et ajoute un onglet **ILLUSTRATIONS** en
 ## V2.0.2 — Illustrations
 - Les cartes d’illustrations utilisent leur hauteur naturelle : aucun recadrage forcé, ratio d’origine conservé.
 - Nouveau bouton vert **Déplacer** entre Supprimer et Importer. Une sélection passe en surbrillance verte, puis un toucher sur l’en-tête d’une catégorie déplace les images vers cette catégorie.
+
+
+## V2.0.3
+- Les tiroirs Illustrations grandissent avec le nombre et le ratio des images ; le défilement se fait sur toute la vue.
+- Ajout de catégories personnalisées locales via + Catégorie, utilisables pour importer/déplacer des images.
+- Confirmation de suppression : NON vert et OUI rouge, mêmes dimensions.
+- Les lieux peuvent recevoir un lien Spotify dans Sons — Musique, Ambiance ; en TABLE une clé de sol lance le lien.

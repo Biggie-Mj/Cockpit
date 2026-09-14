@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Cockpit">
   <title>Cockpit V2 — Préparation D&D 5e</title>
-  <link rel="manifest" href="manifest.webmanifest?v=2.0.2">
+  <link rel="manifest" href="manifest.webmanifest?v=2.0.3">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.0.2">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2.0.2">
-  <link rel="stylesheet" href="styles.css?v=2.0.2">
+  <link rel="stylesheet" href="styles.css?v=2.0.3">
 </head>
 <body>
 
@@ -103,6 +103,7 @@
         <div class="illustrations-head-actions">
           <span id="illustrationSelectionMeta" class="illustration-selection-meta">Aucune sélection</span>
           <button id="btnDeleteIllustrations" class="danger illustration-delete-btn" disabled>Supprimer</button>
+          <button id="btnAddIllustrationCategory" class="illustration-category-btn">＋ Catégorie</button>
           <button id="btnMoveIllustrations" class="illustration-move-btn" disabled>Déplacer</button>
           <button id="btnImportIllustrations" class="violet">⇩ Importer</button>
           <button id="btnExportIllustrations" class="violet" disabled>↗ Exporter</button>
@@ -133,6 +134,7 @@
       <div class="form-grid three"><label class="span2">3 détails visibles <small>Une ligne = un détail</small><textarea name="visuals" rows="4"></textarea></label><label>Impulsion<textarea name="impulse" rows="4"></textarea></label></div>
       <details class="editor-details"><summary>Contexte — faction et intrigues</summary><div class="form-grid three"><label>Faction<input name="faction"></label><label>Intrigue locale<textarea name="localPlot" rows="3"></textarea></label><label>Intrigue régionale<textarea name="regionalPlot" rows="3"></textarea></label><label class="span3">Trace du fil rouge<textarea name="mainPlot" rows="3"></textarea></label></div></details>
       <details class="editor-details"><summary>Jeu — danger, gain, conséquence</summary><div class="form-grid three"><label>Danger<textarea name="danger" rows="3"></textarea></label><label>À obtenir<textarea name="reward" rows="3"></textarea></label><label>Si les PJ ne font rien<textarea name="ifIgnored" rows="3"></textarea></label></div></details>
+      <details class="editor-details"><summary>Sons — Musique, Ambiance</summary><div class="form-grid three"><label class="span3">Lien Spotify<input name="spotifyUrl" inputmode="url" placeholder="https://open.spotify.com/… ou spotify:…"></label></div></details>
     </div>
     <div class="modal-actions"><button type="button" id="btnDeleteLocation" class="danger">Supprimer</button><span></span><button type="button" class="ghost" data-close="locationDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
   </form></dialog>
@@ -175,8 +177,14 @@
 
   <dialog id="illustrationDeleteDialog" class="modal compact-modal">
     <div class="modal-head"><div><span class="eyebrow">ILLUSTRATIONS</span><h2>Supprimer la sélection ?</h2><p id="illustrationDeleteMessage" class="dialog-hint">Les illustrations supprimées pourront être réimportées plus tard.</p></div><button type="button" class="icon-btn" data-close="illustrationDeleteDialog">×</button></div>
-    <div class="modal-actions illustration-delete-actions"><span></span><span></span><button type="button" id="btnCancelDeleteIllustrations" class="ghost">NON</button><button type="button" id="btnConfirmDeleteIllustrations" class="danger">OUI</button></div>
+    <div class="modal-actions illustration-delete-actions"><button type="button" id="btnCancelDeleteIllustrations" class="illustration-no-btn">NON</button><button type="button" id="btnConfirmDeleteIllustrations" class="danger">OUI</button></div>
   </dialog>
+
+  <dialog id="illustrationCategoryDialog" class="modal compact-modal"><form id="illustrationCategoryForm">
+    <div class="modal-head"><div><span class="eyebrow">ILLUSTRATIONS</span><h2>Nouvelle catégorie</h2><p class="dialog-hint">La catégorie sera ajoutée sous les catégories existantes.</p></div><button type="button" class="icon-btn" data-close="illustrationCategoryDialog">×</button></div>
+    <label class="solo-label">Nom de la catégorie<input name="name" required maxlength="40" autocomplete="off" placeholder="Ex. Alliés, Cartes, Artefacts…"></label>
+    <div class="modal-actions illustration-category-actions"><span></span><span></span><button type="button" class="ghost" data-close="illustrationCategoryDialog">Annuler</button><button type="submit" class="illustration-category-btn">Créer</button></div>
+  </form></dialog>
 
   <dialog id="quickNoteDialog" class="modal wide-modal"><form id="quickNoteForm"><div class="modal-head"><div><span class="eyebrow">NOTES DE SESSION</span><h2>Suivi des notes</h2><p class="dialog-hint">Toutes les notes prises pendant cette session restent visibles ici.</p></div><button type="button" class="icon-btn" data-close="quickNoteDialog">×</button></div><div class="quick-note-form"><textarea name="text" rows="4" placeholder="Ce qui devient vrai à la table…"></textarea><select name="type"><option value="note">📝 Note</option><option value="decision">⚑ Décision</option><option value="quote">💬 Citation</option><option value="question">❓ Question</option><option value="death">💀 Mort</option><option value="loot">🎁 Butin</option><option value="lead">🔗 Piste</option></select><button type="submit" class="primary quick-note-submit">Ajouter</button></div><div class="note-history-head"><span class="eyebrow">DÉJÀ NOTÉ</span><strong>Historique de la session</strong></div><div id="quickNoteHistory" class="quick-note-history"></div></form></dialog>
   <dialog id="injectDialog" class="modal compact-modal"><div class="modal-head"><div><span class="eyebrow">RYTHME</span><h2>Injecter dans la partie</h2></div><button type="button" class="icon-btn" data-close="injectDialog">×</button></div><div id="injectContent" class="inject-content"></div></dialog>
@@ -193,6 +201,6 @@
   <input id="npcImportFile" type="file" accept=".json,application/json" hidden>
   <input id="locationImportFile" type="file" accept=".json,application/json" hidden>
   <input id="illustrationImportFile" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple hidden>
-  <script src="app.js?v=2.0.2"></script>
+  <script src="app.js?v=2.0.3"></script>
 </body>
 </html>
