@@ -18,7 +18,7 @@
 .sheet-scrim{position:fixed;inset:0;z-index:300;background:rgba(3,2,2,.58);backdrop-filter:blur(2px)}.npc-sheet{position:fixed;top:0;right:0;bottom:0;z-index:310;width:min(420px,42vw);padding:58px 14px 16px;background:#15100e;border-left:1px solid #5d4537;box-shadow:-25px 0 65px rgba(0,0,0,.5);transform:translateX(104%);transition:transform .18s;overflow:auto}.npc-sheet.open{transform:translateX(0)}.sheet-close{position:absolute;top:10px;right:10px;width:44px;padding:0;border-radius:50%;font-size:20px}.sheet-head{display:flex;gap:12px;align-items:center}.sheet-head h2{margin:2px 0;font:700 22px Georgia,serif}.sheet-head p{margin:0;color:var(--muted);font-size:10px}.npc-facts{display:grid;gap:7px;margin-top:14px}.npc-facts section{padding:9px;border:1px solid #3d2f28;border-radius:9px;background:#100d0b}.npc-facts b{color:#b9905b;font-size:8px;letter-spacing:.1em}.npc-facts p{margin:4px 0 0;font-size:10px;line-height:1.4}.sheet-actions{display:flex;gap:7px;margin-top:12px}.empty-mini,.empty-card{padding:14px;text-align:center;color:var(--muted);font-size:9px}
 
 @media(max-width:1050px){.prep-grid-v3{grid-template-columns:minmax(220px,.82fr) minmax(370px,1.45fr) minmax(220px,.82fr)}.table-shell{grid-template-columns:minmax(185px,22%) minmax(390px,52%) minmax(215px,26%)}.prep-secret-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.save-status{display:none}}
-@media(orientation:portrait){body::before{content:"Cockpit V2 est optimisé pour l’iPad en mode paysage.";position:fixed;z-index:2000;inset:0;display:grid;place-items:center;padding:40px;text-align:center;background:#0b0908;color:#f0cc85;font-weight:800;font-size:22px}}
+@media(orientation:portrait){body::before{content:"Cockpit V1 est optimisé pour l’iPad en mode paysage.";position:fixed;z-index:2000;inset:0;display:grid;place-items:center;padding:40px;text-align:center;background:#0b0908;color:#f0cc85;font-weight:800;font-size:22px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 
 
@@ -240,8 +240,6 @@ button,.location-tile,.rail-location,.ammo-line,.prep-secret,.context-card,.libr
 
 
 /* ===== V2.0.3 — Illustrations extensibles, catégories personnalisées, sons de lieux ===== */
-/* Le défilement appartient à la vue entière : chaque tiroir prend toute la hauteur nécessaire
-   aux images qu'il contient, puis les catégories suivantes descendent naturellement. */
 .illustrations-shell{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch}
 .illustrations-panel{height:auto!important;min-height:100%!important;overflow:visible!important}
 .illustrations-content{flex:0 0 auto!important;min-height:auto!important;overflow:visible!important;padding-bottom:18px!important}
@@ -250,16 +248,13 @@ button,.location-tile,.rail-location,.ammo-line,.prep-secret,.context-card,.libr
 .illustration-grid{height:auto!important;max-height:none!important;overflow:visible!important;grid-auto-rows:max-content!important;align-items:start!important}
 .illustration-card{height:auto!important;max-height:none!important;overflow:hidden!important}
 .illustration-card img{display:block!important;width:100%!important;height:auto!important;max-height:none!important;object-fit:contain!important}
-
 .illustrations-head-actions .illustration-category-btn,.illustration-category-btn{min-width:104px;border-color:#4e84b4;background:linear-gradient(180deg,#315d84,#1e3e5c);color:#e2f2ff;font-weight:850}
 .illustrations-head-actions .illustration-category-btn:active,.illustration-category-btn:active{border-color:#78addb;background:linear-gradient(180deg,#3d729f,#285272);box-shadow:0 0 0 1px rgba(89,156,211,.28),0 0 18px rgba(66,137,195,.18)}
 .illustration-category-actions .illustration-category-btn{min-width:100px}
-
 .illustration-delete-actions{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important;padding:11px 12px!important}
 .illustration-delete-actions button{width:100%!important;min-width:0!important;min-height:48px!important;font-weight:900}
 .illustration-delete-actions .illustration-no-btn{border-color:#4f8c62;background:linear-gradient(180deg,#315f40,#1e422b);color:#e1f7e7}
 .illustration-delete-actions .illustration-no-btn:active{border-color:#7bc18f;background:linear-gradient(180deg,#427a52,#285839)}
-
 .live-title-row{display:flex;align-items:center;gap:9px;min-width:0}
 .live-title-row h2{min-width:0}
 .location-music-btn{flex:0 0 36px;width:36px;min-width:36px;height:36px;min-height:36px;padding:4px;border-radius:10px;border:1px solid #5a4631;background:#15100d;display:grid;place-items:center;box-shadow:none;transition:.16s}
@@ -267,3 +262,23 @@ button,.location-tile,.rail-location,.ammo-line,.prep-secret,.context-card,.libr
 .location-music-btn.active{border-color:#d9aa57;background:radial-gradient(circle,#5c421f,#2a1c10);box-shadow:0 0 0 1px rgba(240,204,133,.42),0 0 18px rgba(215,168,91,.32)}
 .location-music-btn.active img{filter:brightness(1.18) saturate(1.2) drop-shadow(0 0 6px rgba(240,204,133,.72))}
 @media(max-width:1180px){.illustrations-head-actions .illustration-category-btn{min-width:92px}}
+
+
+/* ===== V2.0.4 — iconographie PNG + Strong Start visible + chronomètre de session ===== */
+.ui-icon,.nav-ui-icon{display:inline-block;object-fit:contain;object-position:center;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.ui-icon{width:18px;height:18px;vertical-align:-4px}.button-ui-icon{width:18px;height:18px;margin-right:5px;vertical-align:-4px}.inline-ui-icon{width:16px;height:16px;margin-right:3px;vertical-align:-3px}.top-ui-icon{width:23px;height:23px}.status-ui-icon{width:15px;height:15px;margin-right:4px;vertical-align:-3px}.close-ui-icon{width:18px;height:18px}.edit-ui-icon{width:20px;height:20px}.small-edit-ui-icon{width:15px;height:15px;margin:0}.spotlight-ui-icon{width:18px;height:18px}.player-tools-ui-icon{width:21px;height:21px}.marker-ui-icon{width:18px;height:18px;margin:0}.strong-start-ui-icon{width:17px;height:17px}
+.ui-icon-button{display:inline-grid!important;place-items:center!important;padding:0!important}.ui-icon-button .ui-icon{margin:0!important;vertical-align:0}.save-status{display:flex;align-items:center;justify-content:flex-end;white-space:nowrap}.launch-btn,.primary,.ghost,.violet,.illustration-category-btn,.illustration-move-btn,.dialog-inline-add{align-items:center}.launch-btn:has(.button-ui-icon),.primary:has(.button-ui-icon),.ghost:has(.button-ui-icon),.violet:has(.button-ui-icon),.illustration-category-btn:has(.button-ui-icon),.dialog-inline-add:has(.button-ui-icon){display:inline-flex;justify-content:center}
+.nav-btn span{display:grid;place-items:center;min-height:27px}.nav-ui-icon{width:27px;height:27px}.nav-btn.active .nav-ui-icon{filter:brightness(1.18) drop-shadow(0 0 5px rgba(232,190,105,.38))}.home-ui-icon{width:25px;height:25px}.home-action-icon{font-size:0}
+[data-close].icon-btn{font-size:0}.sheet-close{font-size:0}.edit-pencil svg{display:none!important}.edit-pencil .edit-ui-icon{margin:0}.spotlight-star{display:grid!important;place-items:center!important}.player-tools button{display:grid;place-items:center}
+
+/* Strong Start : signal visuel fort tant qu’il n’a pas été joué. */
+.table-strong-start:not(.hidden){position:relative;border-color:#f3b24c!important;background:linear-gradient(135deg,#39200b,#6b3b0f 55%,#3a210c)!important;animation:strongStartAttention 1.65s ease-in-out infinite;box-shadow:0 0 0 1px rgba(255,197,82,.48),0 0 18px rgba(247,151,37,.36),inset 0 0 18px rgba(255,189,66,.12)}
+.table-strong-start:not(.hidden)::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(110deg,transparent 0%,rgba(255,216,118,.08) 35%,rgba(255,231,153,.2) 48%,rgba(255,216,118,.06) 62%,transparent 100%);background-size:220% 100%;animation:strongStartSweep 2.8s linear infinite}
+.table-strong-start:not(.hidden) .eyebrow{color:#ffd985}.table-strong-start:not(.hidden) strong{color:#fff0c2;position:relative;z-index:1}
+@keyframes strongStartAttention{0%,100%{box-shadow:0 0 0 1px rgba(255,188,69,.45),0 0 13px rgba(239,132,25,.25),inset 0 0 14px rgba(255,183,54,.08)}50%{border-color:#ffd16c;box-shadow:0 0 0 2px rgba(255,207,104,.68),0 0 31px rgba(255,157,33,.62),inset 0 0 24px rgba(255,202,85,.18)}}
+@keyframes strongStartSweep{from{background-position:190% 0}to{background-position:-30% 0}}
+
+/* Chronomètre de session, compact et sans panneau de fond. */
+.brand-zone{display:flex;align-items:center;gap:10px;min-width:0}.brand-zone .brand{min-width:190px}.session-timer{display:flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}.session-timer.hidden{display:none!important}.session-timer-toggle{width:35px;min-width:35px;height:35px;min-height:35px;padding:4px;border-radius:10px;border:1px solid transparent;background:transparent;display:grid;place-items:center;box-shadow:none}.session-timer-toggle img{width:27px;height:27px;display:block;object-fit:contain}.session-timer-toggle.paused{border-color:#f3b24c;background:radial-gradient(circle,#6d4214,#2f1c0d);box-shadow:0 0 0 1px rgba(255,202,96,.48),0 0 18px rgba(246,147,35,.48);animation:timerPausedPulse 1.45s ease-in-out infinite}.session-timer-display{font:800 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e6d9cd;letter-spacing:.03em;min-width:61px;text-align:left;transition:opacity .18s}.session-timer.paused .session-timer-display{opacity:.3}.timer-stop{min-width:50px!important;height:31px!important;min-height:31px!important;padding:3px 8px!important;font-size:9px!important;font-weight:950!important;letter-spacing:.05em}.timer-stop.hidden{display:none!important}@keyframes timerPausedPulse{0%,100%{box-shadow:0 0 0 1px rgba(255,197,82,.38),0 0 10px rgba(238,137,31,.28)}50%{box-shadow:0 0 0 2px rgba(255,211,116,.7),0 0 24px rgba(255,156,36,.62)}}
+.timer-reset-actions{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important;padding:11px 12px!important}.timer-reset-actions button{width:100%!important;min-width:0!important;min-height:48px!important;font-weight:900}.timer-reset-no{border-color:#4f8c62;background:linear-gradient(180deg,#315f40,#1e422b);color:#e1f7e7}.timer-reset-no:active{border-color:#7bc18f;background:linear-gradient(180deg,#427a52,#285839)}
+@media(max-width:1180px){.brand-zone{gap:5px}.brand-zone .brand{min-width:166px}.session-timer-toggle{width:32px;min-width:32px;height:32px;min-height:32px}.session-timer-toggle img{width:24px;height:24px}.session-timer-display{font-size:10px;min-width:54px}.timer-stop{min-width:44px!important;padding:3px 6px!important}}

@@ -1,55 +1,38 @@
-# Cockpit V2 — GitHub Pages / iPad
+# Cockpit V1.5 — package GitHub Pages root-safe
 
-Cette version part directement de la V1.5 fournie par l’utilisateur. Aucun changement fonctionnel n’a été apporté hors du menu `…` et de **Sessions sauvegardées**.
+Version conçue pour être déposée directement à la racine du dépôt GitHub Pages.
 
-## V1.6 — sauvegardes externes
+## V1.5
 
-- Le menu `…` ne contient plus :
-  - **Exporter la session** ;
-  - **Importer une sauvegarde** ;
-  - **Restaurer la démo**.
-- La démo intégrée reste inchangée dans **Préparations et parties sauvegardées** avec son bouton **Charger**.
-- Chaque sauvegarde utilisateur (15 maximum) possède maintenant :
-  - **Reprendre** ;
-  - **Exporter** en violet ;
-  - **Supprimer**.
-- **Exporter** produit une copie externe JSON de l’état exact de la sauvegarde sélectionnée. Sur iPad, la feuille de partage est utilisée lorsqu’elle est disponible afin de pouvoir enregistrer le fichier dans **Fichiers**.
-- Un bouton **Importer** violet est ajouté à côté de **Sauvegarder l’état actuel**.
-- L’import ajoute la sauvegarde au prochain emplacement libre sans modifier la session actuellement ouverte.
-- Quand les 15 emplacements sont occupés, l’import valide le fichier puis demande quel emplacement existant remplacer.
-- Les exports V1.6 utilisent le format JSON `cockpit-session`, version de format 1, avec `appVersion: "1.6"`. Le sélecteur accepte aussi les anciens `.cockpit`/JSON compatibles.
+- Spotlights : retard calculé par rapport au joueur le plus servi ; orange à partir de 2, rouge à partir de 5.
+- Menaces et situations : une injection peut être annulée depuis COMPOSANTS pour rendre l’élément disponible à nouveau.
+- FX Strong Start : reste affiché environ 5,5 secondes et peut être fermé immédiatement en touchant l’écran.
+- Sessions : 15 emplacements utilisateur maximum (la démo ne consomme pas d’emplacement). Le bouton de sauvegarde propose de mettre à jour l’emplacement courant, créer un nouvel emplacement ou écraser une sauvegarde existante.
+- AJOUTER retiré de la navigation : les créations sont maintenant intégrées à chaque onglet de COMPOSANTS.
+- PNJ : création et import JSON depuis Fichiers, avec prise en charge d’un ou plusieurs PNJ dans le même fichier.
+- Lieux : nouvel onglet COMPOSANTS, création et import JSON depuis Fichiers. Le bouton d’import est aussi présent en haut de l’éditeur ouvert par + Lieu.
+- Maintien des correctifs iPadOS V1.2/V1.3 : viewport standalone, safe areas, barre d’état et bandeau supérieur.
 
-## Déploiement
+## Formats d’import
 
-Le paquet est root-safe : déposer directement tous les fichiers à la racine du dépôt GitHub Pages, comme pour les versions précédentes.
+PNJ : `{ "format":"cockpit-npcs", "formatVersion":1, "npcs":[ ... ] }`
 
-## Validation réalisée
+Champs PNJ : `name`, `role`, `identity`, `wants`, `fears`, `knows`, `hides`, `trait`.
 
-- `node --check app.js` : OK.
-- Import des 4 fichiers de test dans la logique réelle de V1.6 : OK.
-- Import sans remplacement de la session actuellement ouverte : OK.
-- Export d’un emplacement puis réimport du payload exporté : contenu identique pour les collections contrôlées : OK.
-- Limite de 15 emplacements : OK ; un 16e import passe en sélection de remplacement sans créer de 16e slot.
-- Sauvegarde colossale testée : 20 PNJ, 12 lieux, 18 secrets, 12 menaces, 10 situations, Strong Start de plus de 1 600 caractères.
+Lieux : `{ "format":"cockpit-locations", "formatVersion":1, "locations":[ ... ] }`
+
+Champs lieu : `name`, `tier`, `concept`, `visuals`, `impulse`, `situation`, `faction`, `localPlot`, `regionalPlot`, `mainPlot`, `danger`, `reward`, `ifIgnored`.
+
+L’application accepte aussi un objet unique ou un tableau JSON brut pour ces deux imports. Les identifiants internes sont recréés à l’import.
 
 
-## V2 — Illustrations
-
-La V2 conserve les fonctions de la V1.6 et ajoute un onglet **ILLUSTRATIONS** entre JOURNAL et NOTE. Les PNG/JPEG importés sont stockés localement dans IndexedDB sur l’iPad, classés en PNJ, Adversaires, Lieux, Objets ou Divers, et ne sont volontairement pas inclus dans les sauvegardes JSON. Une ou plusieurs images peuvent être sélectionnées puis envoyées via la feuille de partage native iPadOS (Discord, Messenger, AirDrop, Fichiers, etc.). Après un partage réussi, les images restent disponibles et sont encadrées en bleu.
-
-
-## Correctif V2.0.1
-- Suppression locale des illustrations sélectionnées avec confirmation OUI/NON.
-- Miniatures non recadrées : chaque image conserve son ratio et apparaît entièrement.
+## V1.5
+- La démo contient un journal de partie illustratif.
+- Chaque ligne du journal peut être modifiée ou effacée individuellement.
+- Export texte chronologique du journal via le bouton Export.
 
 
-## V2.0.2 — Illustrations
-- Les cartes d’illustrations utilisent leur hauteur naturelle : aucun recadrage forcé, ratio d’origine conservé.
-- Nouveau bouton vert **Déplacer** entre Supprimer et Importer. Une sélection passe en surbrillance verte, puis un toucher sur l’en-tête d’une catégorie déplace les images vers cette catégorie.
-
-
-## V2.0.3
-- Les tiroirs Illustrations grandissent avec le nombre et le ratio des images ; le défilement se fait sur toute la vue.
-- Ajout de catégories personnalisées locales via + Catégorie, utilisables pour importer/déplacer des images.
-- Confirmation de suppression : NON vert et OUI rouge, mêmes dimensions.
-- Les lieux peuvent recevoir un lien Spotify dans Sons — Musique, Ambiance ; en TABLE une clé de sol lance le lien.
+## V2.0.4 — Icônes et chronomètre
+- Remplacement des principaux symboles/emoji de navigation et d’action par les PNG dorés fournis.
+- Strong Start en TABLE : halo jaune-orangé animé tant qu’il n’est pas joué.
+- Chronomètre H:MM:SS après lancement de la session, pause via sablier, STOP avec confirmation OUI/NON.

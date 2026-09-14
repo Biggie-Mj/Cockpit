@@ -1,4 +1,4 @@
-const APP_VERSION='2.0.3';
+const APP_VERSION='2.0.4';
 const STORAGE_KEY='cockpit-v1';
 const LEGACY_KEYS=['dm-cockpit-v05','dm-cockpit-v04','dm-cockpit-v03','dm-cockpit-v02'];
 const BACKUP_KEY='cockpit-v1-backups';
@@ -11,12 +11,13 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const uid=(p='id')=>`${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const uiIcon=(name,cls='ui-icon')=>`<img src="${name}.png" class="${cls}" alt="" aria-hidden="true">`;
 const lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
 const nowStamp=()=>new Date().toISOString();
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 const DEMO={
-  version:'2.0.3',
+  version:'2.0.4',
   title:'Démo · Le Relais de la Lune Brisée',
   view:'prep',
   activeLocationId:'l1',
@@ -108,7 +109,7 @@ const DEMO={
   ]
 };
 
-const EMPTY=()=>({version:'2.0',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
+const EMPTY=()=>({version:'2.0.4',title:'Nouvelle session',view:'prep',activeLocationId:null,previewLocationId:null,contextTab:'npcs',libraryTab:'secrets',sessionStartedAt:null,sessionTimer:{elapsedMs:0,running:false,startedAt:null},lastAutoBackupAt:null,saveSlotId:null,players:[],thread:{goal:'',steps:[]},strongStart:{text:'',used:false},locations:[],npcs:[],secrets:[],threats:[],situations:[],rewards:[],blanks:[],pins:[],journal:[]});
 
 let state=load();
 let history=[];
@@ -123,6 +124,7 @@ let recentlyRevealedSecretId=null;
 let homeOpen=true;
 let pendingImportedSession=null;
 let activeMusicLocationId=null;
+let sessionTimerInterval=null;
 
 function normalize(s){
   const base=EMPTY(), out={...base,...s};
@@ -130,6 +132,10 @@ function normalize(s){
   out.thread=out.thread&&typeof out.thread==='object'?out.thread:base.thread;
   if(!Array.isArray(out.thread.steps))out.thread.steps=[];
   out.strongStart=out.strongStart&&typeof out.strongStart==='object'?out.strongStart:base.strongStart;
+  const rawTimer=out.sessionTimer&&typeof out.sessionTimer==='object'?out.sessionTimer:{};
+  out.sessionTimer={elapsedMs:Math.max(0,Number(rawTimer.elapsedMs)||0),running:!!rawTimer.running,startedAt:Number.isFinite(Number(rawTimer.startedAt))?Number(rawTimer.startedAt):null};
+  if(!out.sessionStartedAt){out.sessionTimer={elapsedMs:0,running:false,startedAt:null}}
+  if(out.sessionTimer.running&&!out.sessionTimer.startedAt)out.sessionTimer.startedAt=Date.now();
   out.version=APP_VERSION;
   if(!out.previewLocationId)out.previewLocationId=out.activeLocationId||out.locations[0]?.id||null;
   if(out.contextTab==='threats')out.contextTab='rhythm';
@@ -157,7 +163,7 @@ function persist(){
   localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
   if(state.saveSlotId){const list=getSavedSessions(),idx=list.findIndex(x=>x.id===state.saveSlotId);if(idx>=0){list[idx]={...list[idx],name:state.title||list[idx].name,updatedAt:nowStamp(),state:clone(state)};setSavedSessions(list)}}
   const stamp=new Date();
-  const el=$('#saveStatus');if(el)el.textContent=`✓ Sauvegardé ${stamp.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+  const el=$('#saveStatus');if(el)el.innerHTML=`${uiIcon('coche','ui-icon status-ui-icon')} <span>Sauvegardé ${stamp.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>`;
   maybeAutoBackup(stamp.getTime());
 }
 function snapshot(){history.push(JSON.stringify(state));if(history.length>50)history.shift()}
@@ -192,10 +198,35 @@ function maybeAutoBackup(now=Date.now()){
   if(!state.lastAutoBackupAt||now-state.lastAutoBackupAt>=AUTO_BACKUP_MS)createBackup('Auto 30 min');
 }
 
+function currentSessionElapsedMs(){
+  const t=state.sessionTimer||{elapsedMs:0,running:false,startedAt:null};
+  return Math.max(0,(Number(t.elapsedMs)||0)+(t.running&&t.startedAt?Math.max(0,Date.now()-Number(t.startedAt)):0));
+}
+function formatSessionDuration(ms){const total=Math.max(0,Math.floor(ms/1000)),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),sec=total%60;return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
+function updateSessionTimerDisplay(){const display=$('#sessionTimerDisplay');if(display)display.textContent=formatSessionDuration(currentSessionElapsedMs())}
+function syncSessionTimerTicker(){clearInterval(sessionTimerInterval);sessionTimerInterval=null;if(state.sessionStartedAt&&state.sessionTimer?.running){sessionTimerInterval=setInterval(updateSessionTimerDisplay,1000)}}
+function renderSessionTimer(){
+  const wrap=$('#sessionTimer'),toggle=$('#btnSessionTimer'),stop=$('#btnStopSessionTimer');if(!wrap||!toggle||!stop)return;
+  const visible=!!state.sessionStartedAt;wrap.classList.toggle('hidden',!visible);if(!visible){clearInterval(sessionTimerInterval);sessionTimerInterval=null;return}
+  const paused=!state.sessionTimer?.running;wrap.classList.toggle('paused',paused);toggle.classList.toggle('paused',paused);toggle.title=paused?'Reprendre le compteur':'Mettre le compteur en pause';toggle.setAttribute('aria-label',toggle.title);stop.classList.toggle('hidden',!paused);updateSessionTimerDisplay();syncSessionTimerTicker();
+}
+function ensureSessionTimerRunning(){
+  state.sessionTimer=state.sessionTimer&&typeof state.sessionTimer==='object'?state.sessionTimer:{elapsedMs:0,running:false,startedAt:null};
+  if(!state.sessionTimer.running){state.sessionTimer.running=true;state.sessionTimer.startedAt=Date.now()}
+}
+function toggleSessionTimer(){
+  if(!state.sessionStartedAt)return;
+  state.sessionTimer=state.sessionTimer||{elapsedMs:0,running:false,startedAt:null};
+  if(state.sessionTimer.running){state.sessionTimer.elapsedMs=currentSessionElapsedMs();state.sessionTimer.running=false;state.sessionTimer.startedAt=null}else{state.sessionTimer.running=true;state.sessionTimer.startedAt=Date.now()}
+  persist();renderSessionTimer();
+}
+function requestSessionTimerReset(){if(!state.sessionStartedAt||state.sessionTimer?.running)return;$('#timerResetDialog').showModal()}
+function resetSessionTimer(){state.sessionTimer={elapsedMs:0,running:false,startedAt:null};persist();renderSessionTimer();$('#timerResetDialog').close();toast('Compteur remis à zéro')}
+
 function render(){
   state=normalize(state);
   $('#sessionTitle').value=state.title||'';
-  renderPlayers();renderPrep();renderTable();renderLibrary();renderJournal();if(state.view==='illustrations')renderIllustrations();renderBackupButton();renderHome();const launch=$('#btnLaunchSession');if(launch)launch.textContent=state.sessionStartedAt?'▶ Reprendre la table':'▶ Lancer la session';switchView(state.view||'prep',false);
+  renderPlayers();renderPrep();renderTable();renderLibrary();renderJournal();if(state.view==='illustrations')renderIllustrations();renderBackupButton();renderHome();const launch=$('#btnLaunchSession');if(launch)launch.innerHTML=`${uiIcon('jouer','ui-icon button-ui-icon')} ${state.sessionStartedAt?'Reprendre la table':'Lancer la session'}`;renderSessionTimer();switchView(state.view||'prep',false);
 }
 function switchView(view,persistView=true){
   const valid=['prep','table','library','journal','illustrations'];if(!valid.includes(view))view='prep';const previous=state.view;state.view=view;
@@ -215,9 +246,9 @@ function renderPlayers(){
     const count=p.spotlightCount||0,gap=max-count;
     let rank='';if(max>0&&count===max)rank='leader';else if(gap>=5)rank='lag-red';else if(gap>=2)rank='lag-orange';
     const flash=spotlightFlashId===p.id?' spotlight-flash':'';
-    return `<div class="player-chip ${rank}${flash}" data-player-id="${p.id}"><button class="spotlight-star" data-add-spotlight="${p.id}" title="Ajouter un moment de spotlight">🌟</button><button class="player-main" data-open-spotlight="${p.id}"><strong>${esc(p.name)}</strong><span class="spotlight-count">${count}</span></button></div>`;
+    return `<div class="player-chip ${rank}${flash}" data-player-id="${p.id}"><button class="spotlight-star" data-add-spotlight="${p.id}" title="Ajouter un moment de spotlight">${uiIcon('etoile','ui-icon spotlight-ui-icon')}</button><button class="player-main" data-open-spotlight="${p.id}"><strong>${esc(p.name)}</strong><span class="spotlight-count">${count}</span></button></div>`;
   }).join('');
-  el.innerHTML=`<div class="player-chips">${chips||'<span class="player-empty">Aucun PJ</span>'}</div><div class="player-tools"><button id="btnEditPlayers" class="ghost" title="Gérer les joueurs">⚙</button></div>`;
+  el.innerHTML=`<div class="player-chips">${chips||'<span class="player-empty">Aucun PJ</span>'}</div><div class="player-tools"><button id="btnEditPlayers" class="ghost ui-icon-button" title="Gérer les joueurs" aria-label="Gérer les joueurs">${uiIcon('groupe','ui-icon player-tools-ui-icon')}</button></div>`;
   $$('[data-add-spotlight]').forEach(b=>b.onclick=e=>{e.stopPropagation();incrementSpotlight(b.dataset.addSpotlight)});
   $$('[data-open-spotlight]').forEach(b=>b.onclick=()=>openSpotlightDialog(b.dataset.openSpotlight));
   $('#btnEditPlayers').onclick=openPlayersEditor;
@@ -243,7 +274,7 @@ function renderThreadCard(){
   $('#threadCard').innerHTML=`<div class="thread-goal">${esc(state.thread.goal||'Définis ce que cherche la force active.')}</div><div class="thread-steps">${steps.length?steps.map((s,i)=>`<div class="thread-step ${s.done?'done':''}"><button data-toggle-thread="${s.id}">${s.done?'✓':i+1}</button><span>${esc(s.text)}</span></div>`).join(''):'<div class="empty-mini">Aucune conséquence préparée.</div>'}</div>`;
   $$('[data-toggle-thread]').forEach(b=>b.onclick=()=>commit(()=>{const s=state.thread.steps.find(x=>x.id===b.dataset.toggleThread);if(s)s.done=!s.done},'Fil rouge mis à jour'));
 }
-function renderStrongCard(){const s=state.strongStart;$('#strongCard').innerHTML=`<div class="${s.used?'strong-used':''}"><div class="strong-copy">${esc(s.text||'Une situation immédiatement active, puis : « Que faites-vous ? »')}</div><div class="strong-status"><span class="eyebrow">${s.used?'JOUÉ':'PRÊT'}</span>${s.used?'<button id="btnResetStrong" class="ghost">↺ Réinitialiser</button>':''}</div></div>`;if($('#btnResetStrong'))$('#btnResetStrong').onclick=()=>commit(()=>state.strongStart.used=false,'Strong Start réinitialisé')}
+function renderStrongCard(){const s=state.strongStart;$('#strongCard').innerHTML=`<div class="${s.used?'strong-used':''}"><div class="strong-copy">${esc(s.text||'Une situation immédiatement active, puis : « Que faites-vous ? »')}</div><div class="strong-status"><span class="eyebrow">${s.used?'JOUÉ':'PRÊT'}</span>${s.used?`<button id="btnResetStrong" class="ghost">${uiIcon('actualiser','ui-icon button-ui-icon')} Réinitialiser</button>`:''}</div></div>`;if($('#btnResetStrong'))$('#btnResetStrong').onclick=()=>commit(()=>state.strongStart.used=false,'Strong Start réinitialisé')}
 
 function renderPrepLocations(){
   const main=state.locations.filter(l=>l.tier!=='reserve'),reserve=state.locations.filter(l=>l.tier==='reserve');
@@ -265,21 +296,21 @@ function renderPrepSituations(){
 }
 
 function renderTable(){renderTableStrongStart();renderTableLocations();renderTableThread();renderLiveLocation(previewLocation());renderContextPanel()}
-function renderTableStrongStart(){const b=$('#tableStrongStart'),s=state.strongStart;if(s.used){b.classList.add('hidden');b.onclick=null;return}b.classList.remove('hidden');b.innerHTML=`<span class="eyebrow">STRONG START</span><strong>▶ ${esc(s.text||'Aucun Strong Start préparé.')}</strong>`;b.onclick=openStrongStartPlay}
+function renderTableStrongStart(){const b=$('#tableStrongStart'),s=state.strongStart;if(s.used){b.classList.add('hidden');b.onclick=null;return}b.classList.remove('hidden');b.innerHTML=`<span class="eyebrow">STRONG START</span><strong>${uiIcon('etoile','ui-icon inline-ui-icon strong-start-ui-icon')} ${esc(s.text||'Aucun Strong Start préparé.')}</strong>`;b.onclick=openStrongStartPlay}
 function renderTableLocations(){
   const main=state.locations.filter(l=>l.tier!=='reserve'),reserve=state.locations.filter(l=>l.tier==='reserve');
-  const group=(label,arr)=>`<span class="eyebrow rail-label">${label}</span>${arr.map(l=>`<button class="rail-location ${esc(l.status)} ${state.previewLocationId===l.id?'previewing':''}" data-preview-location="${l.id}"><strong>${esc(l.name)}</strong><small>${esc(l.concept||l.situation||'')}</small><span class="marker">${l.status==='current'?'●':l.status==='visited'?'✓':'○'}</span></button>`).join('')}`;
+  const group=(label,arr)=>`<span class="eyebrow rail-label">${label}</span>${arr.map(l=>`<button class="rail-location ${esc(l.status)} ${state.previewLocationId===l.id?'previewing':''}" data-preview-location="${l.id}"><strong>${esc(l.name)}</strong><small>${esc(l.concept||l.situation||'')}</small><span class="marker">${l.status==='current'?uiIcon('marqueur_carte','ui-icon marker-ui-icon'):l.status==='visited'?uiIcon('coche','ui-icon marker-ui-icon'):'○'}</span></button>`).join('')}`;
   $('#tableLocationList').innerHTML=state.locations.length?group('PRINCIPAUX',main)+group('RÉSERVE',reserve):'<div class="empty-mini">Aucun lieu.</div>';
   $$('[data-preview-location]').forEach(b=>b.onclick=()=>{state.previewLocationId=b.dataset.previewLocation;persist();renderTable()});
 }
 function renderLiveLocation(l){
-  const el=$('#liveLocationContent');if(!l){el.innerHTML=`<div class="live-empty"><div><span class="eyebrow">TABLE</span><h2>Aucun lieu</h2><button id="emptyLocationBtn" class="primary">＋ Créer un lieu</button></div></div>`;$('#emptyLocationBtn').onclick=()=>openLocationEditor();return}
+  const el=$('#liveLocationContent');if(!l){el.innerHTML=`<div class="live-empty"><div><span class="eyebrow">TABLE</span><h2>Aucun lieu</h2><button id="emptyLocationBtn" class="primary">${uiIcon('plus','ui-icon button-ui-icon')} Créer un lieu</button></div></div>`;$('#emptyLocationBtn').onclick=()=>openLocationEditor();return}
   const isCurrent=l.id===state.activeLocationId, visuals=l.visuals||[], npcs=(l.npcIds||[]).map(id=>state.npcs.find(n=>n.id===id)).filter(Boolean);
   const sit=state.situations.filter(x=>x.injected&&x.injectedLocationId===l.id),thr=state.threats.filter(x=>x.injected&&x.injectedLocationId===l.id);
   const npcStrip=npcs.length?`<div class="live-npc-strip"><span class="eyebrow">PNJ PRÉSENTS</span><div class="live-npc-list">${npcs.map(n=>`<button class="live-npc" data-live-npc="${n.id}"><span class="avatar">${initials(n.name)}</span><strong>${esc(n.name)}</strong></button>`).join('')}</div></div>`:'';
-  const injections=(sit.length||thr.length)?`<div class="live-injections"><div class="injection-strip">${thr.map(t=>`<button class="injection-chip threat ${t.activeInjected?'active':'inactive'}" data-toggle-injection="threat:${t.id}"><span class="eyebrow injection-label">MENACE INJECTÉE</span><b>⚠ ${esc(t.name)}</b><small>${esc(t.summary||'')}</small></button>`).join('')}${sit.map(s=>`<button class="injection-chip situation ${s.activeInjected?'active':'inactive'}" data-toggle-injection="situation:${s.id}"><span class="eyebrow injection-label">SITUATION INJECTÉE</span><b>✦ ${esc(s.text)}</b></button>`).join('')}</div></div>`:'';
+  const injections=(sit.length||thr.length)?`<div class="live-injections"><div class="injection-strip">${thr.map(t=>`<button class="injection-chip threat ${t.activeInjected?'active':'inactive'}" data-toggle-injection="threat:${t.id}"><span class="eyebrow injection-label">MENACE INJECTÉE</span><b>${uiIcon('point_exclamation','ui-icon inline-ui-icon')} ${esc(t.name)}</b><small>${esc(t.summary||'')}</small></button>`).join('')}${sit.map(s=>`<button class="injection-chip situation ${s.activeInjected?'active':'inactive'}" data-toggle-injection="situation:${s.id}"><span class="eyebrow injection-label">SITUATION INJECTÉE</span><b>${uiIcon('etoile','ui-icon inline-ui-icon')} ${esc(s.text)}</b></button>`).join('')}</div></div>`:'';
   const musicButton=l.spotifyUrl?`<button id="btnLocationMusic" class="location-music-btn ${activeMusicLocationId===l.id?'active':''}" aria-label="Lancer le son Spotify de ${esc(l.name)}" title="Lancer la musique / ambiance"><img src="music-note.png" alt=""></button>`:'';
-  el.innerHTML=`<div class="live-hero"><div><span class="eyebrow">${isCurrent?'LIEU ACTUEL':'APERÇU · LE JEU EST AILLEURS'}</span><div class="live-title-row">${musicButton}<h2>${esc(l.name)}</h2></div><p class="concept">${esc(l.concept||'')}</p>${npcStrip}</div><div class="live-actions">${!isCurrent?`<button id="btnMakeCurrent" class="primary">● Rendre actuel</button><button id="btnReturnCurrent" class="ghost">↩ Actuel</button>`:''}<button id="btnEditPreview" class="ghost edit-pencil" aria-label="Modifier le lieu" title="Modifier le lieu"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z" stroke-width="1.8" stroke-linejoin="round"/><path d="m13.8 6.2 4 4" stroke-width="1.8"/></svg></button></div></div>${injections}
+  el.innerHTML=`<div class="live-hero"><div><span class="eyebrow">${isCurrent?'LIEU ACTUEL':'APERÇU · LE JEU EST AILLEURS'}</span><div class="live-title-row">${musicButton}<h2>${esc(l.name)}</h2></div><p class="concept">${esc(l.concept||'')}</p>${npcStrip}</div><div class="live-actions">${!isCurrent?`<button id="btnMakeCurrent" class="primary">${uiIcon('marqueur_carte','ui-icon button-ui-icon')} Rendre actuel</button><button id="btnReturnCurrent" class="ghost">${uiIcon('fleche_gauche','ui-icon button-ui-icon')} Actuel</button>`:''}<button id="btnEditPreview" class="ghost edit-pencil" aria-label="Modifier le lieu" title="Modifier le lieu">${uiIcon('crayon','ui-icon edit-ui-icon')}</button></div></div>${injections}
   <div class="live-core">
     <article><h3>Qu’est-ce qu’on voit ?</h3>${visuals.length?`<ul>${visuals.map(v=>`<li>${esc(v)}</li>`).join('')}</ul>`:'<p class="muted">À improviser.</p>'}</article>
     <article class="impulse"><h3>Impulsion</h3><p>${esc(l.impulse||'Comment ce lieu tend-il à agir ?')}</p></article>
@@ -305,7 +336,7 @@ function renderContextPanel(){
 $$('.context-tab').forEach(b=>{b.classList.toggle('active',b.dataset.context===state.contextTab);const c=b.querySelector('i');if(c)c.textContent=counts[b.dataset.context]||0});
   const el=$('#contextContent');
   if(state.contextTab==='npcs'){
-    el.innerHTML=`<div class="context-toolbar"><span>${current?esc(current.name):'Aucun lieu actuel'} · ${ids.length} présent${ids.length>1?'s':''}</span><button id="btnCreateNpc" class="primary">＋ Créer</button></div>${allNpcs.length?allNpcs.map(n=>{const here=ids.includes(n.id);return `<div class="context-card npc-row ${here?'present':''}"><button class="npc-row-main" data-show-npc="${n.id}"><span class="avatar">${initials(n.name)}</span><span><strong>${esc(n.name)}</strong><small>${esc(n.role||'PNJ')}</small></span></button><button class="npc-location-toggle ${here?'here':''}" data-toggle-location-npc="${n.id}">${here?'✓ Ici':'+ Ici'}</button></div>`}).join(''):'<div class="empty-mini">Aucun PNJ. Crée-en un à la volée.</div>'}`;
+    el.innerHTML=`<div class="context-toolbar"><span>${current?esc(current.name):'Aucun lieu actuel'} · ${ids.length} présent${ids.length>1?'s':''}</span><button id="btnCreateNpc" class="primary">${uiIcon('plus','ui-icon button-ui-icon')} Créer</button></div>${allNpcs.length?allNpcs.map(n=>{const here=ids.includes(n.id);return `<div class="context-card npc-row ${here?'present':''}"><button class="npc-row-main" data-show-npc="${n.id}"><span class="avatar">${initials(n.name)}</span><span><strong>${esc(n.name)}</strong><small>${esc(n.role||'PNJ')}</small></span></button><button class="npc-location-toggle ${here?'here':''}" data-toggle-location-npc="${n.id}">${here?'✓ Ici':'+ Ici'}</button></div>`}).join(''):'<div class="empty-mini">Aucun PNJ. Crée-en un à la volée.</div>'}`;
     $$('[data-show-npc]').forEach(b=>b.onclick=()=>showNpcSheet(b.dataset.showNpc));$$('[data-toggle-location-npc]').forEach(b=>b.onclick=()=>toggleNpcAtCurrentLocation(b.dataset.toggleLocationNpc));$('#btnCreateNpc').onclick=()=>openNpcEditor();
   }else if(state.contextTab==='secrets'){
     el.innerHTML=secrets.length?secrets.map(s=>{const revealed=!!s.revealed,recent=recentlyRevealedSecretId===s.id;return `<div class="context-card secret ${revealed?'revealed':''} ${recent?'recently-revealed':''}"><div class="secret-copy"><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small>${revealed?`<span class="secret-method-badge">${methodIcon(s.method)} ${esc(s.method||'Révélé')}</span>`:''}</div>${revealed?'':revealPendingId===s.id?`<div class="reveal-methods"><button data-secret-method="${s.id}|Conversation" title="Conversation">💬</button><button data-secret-method="${s.id}|Observation" title="Observation">👁</button><button data-secret-method="${s.id}|Document" title="Document">📜</button><button data-secret-method="${s.id}|Magie" title="Magie">✨</button><button data-secret-method="${s.id}|Déduction des joueurs" title="Déduction">🧠</button><button data-secret-method="${s.id}|Autre" title="Autre">✦</button></div>`:`<button class="primary reveal-btn" data-start-reveal="${s.id}">◆ Révéler</button>`}</div>`}).join(''):'<div class="empty-mini">Aucun secret préparé.</div>';
@@ -313,10 +344,10 @@ $$('.context-tab').forEach(b=>{b.classList.toggle('active',b.dataset.context===s
   }else if(state.contextTab==='rhythm'){
     const situationRows=state.situations.map(x=>`<div class="rhythm-row situation ${x.injected?'injected':''}"><span class="rhythm-state">${x.injected?'✓':'○'}</span><span>${esc(x.text)}</span></div>`).join('')||'<div class="empty-mini">Aucune situation.</div>';
     const threatRows=threats.map(t=>`<div class="rhythm-row threat ${t.injected?'injected':''}"><span class="rhythm-state">${t.injected?'✓':'○'}</span><span><strong>${esc(t.name)}</strong><small>${esc(t.summary||'')}</small></span></div>`).join('')||'<div class="empty-mini">Aucune menace.</div>';
-    el.innerHTML=`<div class="context-toolbar rhythm-toolbar"><span>Situations et menaces prêtes à entrer en jeu</span><button id="btnContextInject" class="primary">⚡ Injecter</button></div><section class="rhythm-section"><h3>SITUATIONS</h3>${situationRows}</section><section class="rhythm-section"><h3>MENACES</h3>${threatRows}</section>`;
+    el.innerHTML=`<div class="context-toolbar rhythm-toolbar"><span>Situations et menaces prêtes à entrer en jeu</span><button id="btnContextInject" class="primary">${uiIcon('eclair','ui-icon button-ui-icon')} Injecter</button></div><section class="rhythm-section"><h3>SITUATIONS</h3>${situationRows}</section><section class="rhythm-section"><h3>MENACES</h3>${threatRows}</section>`;
     $('#btnContextInject').onclick=()=>{renderInjection();$('#injectDialog').showModal()};
   }else{
-    el.innerHTML=`<div class="context-toolbar"><span>Informations sous les yeux</span><button id="btnAddPin" class="ghost">＋</button></div>${state.pins.length?state.pins.map(p=>`<div class="pin-item"><span>📌</span><span>${esc(p.text)}</span><button data-remove-pin="${p.id}">×</button></div>`).join(''):'<div class="empty-mini">Rien d’épinglé.</div>'}`;
+    el.innerHTML=`<div class="context-toolbar"><span>Informations sous les yeux</span><button id="btnAddPin" class="ghost ui-icon-button" aria-label="Épingler une information">${uiIcon('plus','ui-icon button-ui-icon')}</button></div>${state.pins.length?state.pins.map(p=>`<div class="pin-item"><span>${uiIcon('epingle','ui-icon inline-ui-icon')}</span><span>${esc(p.text)}</span><button data-remove-pin="${p.id}">×</button></div>`).join(''):'<div class="empty-mini">Rien d’épinglé.</div>'}`;
     $('#btnAddPin').onclick=()=>openGenericEditor('pin');$$('[data-remove-pin]').forEach(b=>b.onclick=()=>commit(()=>state.pins=state.pins.filter(p=>p.id!==b.dataset.removePin),null));
   }
 }
@@ -326,7 +357,7 @@ function makeCurrentLocation(id){
   commit(()=>{const prev=activeLocation();if(prev&&prev.id!==id)prev.status='visited';next.status='current';state.activeLocationId=id;state.previewLocationId=id;state.journal.unshift({id:uid('j'),type:'location',text:`Le jeu se déplace vers ${next.name}.`,locationId:id,createdAt:nowStamp()})},`Lieu actuel : ${next.name}`);
 }
 function openStrongStartPlay(){if(state.strongStart.used)return;$('#strongStartPlayText').textContent=state.strongStart.text||'Aucun Strong Start préparé.';$('#strongStartPlayDialog').showModal()}
-function playStrongStart(){if(state.strongStart.used)return;commit(()=>{state.strongStart.used=true;if(!state.sessionStartedAt)state.sessionStartedAt=nowStamp();state.journal.unshift({id:uid('j'),type:'location',text:'Strong Start joué — la session commence.',locationId:state.activeLocationId,createdAt:nowStamp()})},'Strong Start joué');$('#strongStartPlayDialog').close();playSessionStartFx()}
+function playStrongStart(){if(state.strongStart.used)return;commit(()=>{const startsSession=!state.sessionStartedAt;state.strongStart.used=true;if(startsSession)state.sessionStartedAt=nowStamp();if(startsSession||(!state.sessionTimer?.running&&!(state.sessionTimer?.elapsedMs>0)))ensureSessionTimerRunning();state.journal.unshift({id:uid('j'),type:'location',text:'Strong Start joué — la session commence.',locationId:state.activeLocationId,createdAt:nowStamp()})},'Strong Start joué');$('#strongStartPlayDialog').close();playSessionStartFx()}
 function hideSessionStartFx(){const fx=$('#sessionStartFx');if(!fx)return;fx.classList.remove('show');fx.setAttribute('aria-hidden','true');clearTimeout(playSessionStartFx._t)}
 function playSessionStartFx(){const fx=$('#sessionStartFx');if(!fx)return;fx.classList.add('show');fx.setAttribute('aria-hidden','false');clearTimeout(playSessionStartFx._t);playSessionStartFx._t=setTimeout(hideSessionStartFx,5500)}
 function methodIcon(method){return ({'Conversation':'💬','Observation':'👁','Document':'📜','Magie':'✨','Déduction des joueurs':'🧠','Autre':'✦'})[method]||'◆'}
@@ -337,7 +368,7 @@ function toggleLibraryInjection(type,id){const arr=type==='threat'?state.threats
 function toggleInjectedHighlight(token){const [type,id]=token.split(':'),arr=type==='threat'?state.threats:state.situations,item=arr.find(x=>x.id===id);if(!item)return;commit(()=>item.activeInjected=!item.activeInjected,null)}
 
 function showNpcSheet(id){
-  const n=state.npcs.find(x=>x.id===id);if(!n)return;$('#npcSheetContent').innerHTML=`<div class="sheet-head"><div class="avatar big">${initials(n.name)}</div><div><span class="eyebrow">PNJ</span><h2>${esc(n.name)}</h2><p>${esc(n.role||'')}</p></div></div><div class="npc-facts"><section><b>IDENTITÉ</b><p>${esc(n.identity||'—')}</p></section><section><b>VEUT</b><p>${esc(n.wants||'—')}</p></section><section><b>CRAINT</b><p>${esc(n.fears||'—')}</p></section><section><b>SAIT</b><p>${esc(n.knows||'—')}</p></section><section><b>CACHE</b><p>${esc(n.hides||'—')}</p></section><section><b>TRAIT DE JEU</b><p>${esc(n.trait||'—')}</p></section></div><div class="sheet-actions"><button id="btnPinNpc" class="ghost">📌 Épingler</button><button id="btnEditNpcFromSheet" class="ghost">Modifier</button></div>`;$('#sheetScrim').classList.remove('hidden');$('#npcSheet').classList.add('open');$('#btnPinNpc').onclick=()=>commit(()=>state.pins.push({id:uid('pi'),text:`${n.name} — ${n.wants||n.role||''}`}),`${n.name} épinglé`);$('#btnEditNpcFromSheet').onclick=()=>{closeNpcSheet();openNpcEditor(id)}}
+  const n=state.npcs.find(x=>x.id===id);if(!n)return;$('#npcSheetContent').innerHTML=`<div class="sheet-head"><div class="avatar big">${initials(n.name)}</div><div><span class="eyebrow">PNJ</span><h2>${esc(n.name)}</h2><p>${esc(n.role||'')}</p></div></div><div class="npc-facts"><section><b>IDENTITÉ</b><p>${esc(n.identity||'—')}</p></section><section><b>VEUT</b><p>${esc(n.wants||'—')}</p></section><section><b>CRAINT</b><p>${esc(n.fears||'—')}</p></section><section><b>SAIT</b><p>${esc(n.knows||'—')}</p></section><section><b>CACHE</b><p>${esc(n.hides||'—')}</p></section><section><b>TRAIT DE JEU</b><p>${esc(n.trait||'—')}</p></section></div><div class="sheet-actions"><button id="btnPinNpc" class="ghost">${uiIcon('epingle','ui-icon button-ui-icon')} Épingler</button><button id="btnEditNpcFromSheet" class="ghost">Modifier</button></div>`;$('#sheetScrim').classList.remove('hidden');$('#npcSheet').classList.add('open');$('#btnPinNpc').onclick=()=>commit(()=>state.pins.push({id:uid('pi'),text:`${n.name} — ${n.wants||n.role||''}`}),`${n.name} épinglé`);$('#btnEditNpcFromSheet').onclick=()=>{closeNpcSheet();openNpcEditor(id)}}
 function closeNpcSheet(){$('#npcSheet').classList.remove('open');$('#sheetScrim').classList.add('hidden')}
 
 function openLocationEditor(id=null){
@@ -370,15 +401,15 @@ function libraryToolbar(tab){
     rewards:{label:'Récompense',type:'reward'},
     blanks:{label:'Blanc',type:'blank'}
   },d=defs[tab];if(!d)return '';
-  return `<div class="component-toolbar"><div><span class="eyebrow">COMPOSANTS</span><strong>${esc(d.label)}${tab==='npcs'||tab==='locations'?'s':''}</strong></div><div class="component-toolbar-actions"><button class="primary" data-create-component="${d.type}">＋ ${esc(d.label)}</button>${d.importKind?`<button class="ghost" data-import-component="${d.importKind}">⇩ Importer</button>`:''}</div></div>`;
+  return `<div class="component-toolbar"><div><span class="eyebrow">COMPOSANTS</span><strong>${esc(d.label)}${tab==='npcs'||tab==='locations'?'s':''}</strong></div><div class="component-toolbar-actions"><button class="primary" data-create-component="${d.type}">${uiIcon('plus','ui-icon button-ui-icon')} ${esc(d.label)}</button>${d.importKind?`<button class="ghost" data-import-component="${d.importKind}">⇩ Importer</button>`:''}</div></div>`;
 }
 function renderLibrary(){
   $$('.library-tab').forEach(b=>b.classList.toggle('active',b.dataset.library===state.libraryTab));const el=$('#libraryContent'),tab=state.libraryTab;let html='';
   if(tab==='secrets')html=state.secrets.map(s=>`<article class="library-card ${s.revealed?'revealed-secret':''}"><header><div><h3>${esc(s.title)}</h3><div class="subtitle">${s.revealed?`${methodIcon(s.method)} RÉVÉLÉ · ${esc(s.method||'')}`:'SECRET FLOTTANT'}</div></div><span>${s.revealed?'✓':'○'}</span></header><p>${esc(s.text)}</p><footer>${!s.revealed?`<button class="primary" data-lib-reveal="${s.id}">Révéler</button>`:''}<button data-edit-secret="${s.id}">Modifier</button></footer></article>`).join('');
   if(tab==='npcs')html=state.npcs.map(n=>`<article class="library-card"><header><div><h3>${esc(n.name)}</h3><div class="subtitle">${esc(n.role||'PNJ')}</div></div><span>${initials(n.name)}</span></header><p><strong>Veut :</strong> ${esc(n.wants||'—')}<br><strong>Craint :</strong> ${esc(n.fears||'—')}<br><strong>Sait :</strong> ${esc(n.knows||'—')}<br><strong>Cache :</strong> ${esc(n.hides||'—')}</p><footer><button data-show-npc="${n.id}">Voir</button><button data-edit-npc="${n.id}">Modifier</button></footer></article>`).join('');
   if(tab==='locations')html=state.locations.map(l=>`<article class="library-card"><header><div><h3>${esc(l.name)}</h3><div class="subtitle">${l.tier==='reserve'?'RÉSERVE':'PRINCIPAL'} · ${statusLabel(l)}</div></div><span>◈</span></header><p><strong>Concept :</strong> ${esc(l.concept||'—')}<br><strong>Situation :</strong> ${esc(l.situation||'—')}</p><footer><button data-open-location="${l.id}">Voir en Table</button><button data-edit-location-lib="${l.id}">Modifier</button></footer></article>`).join('');
-  if(tab==='threats')html=state.threats.map(t=>`<article class="library-card ${t.injected?'revealed-secret':''}"><header><div><h3>${esc(t.name)}</h3><div class="subtitle">${threatTypeLabel(t.type)} · ${t.injected?'INJECTÉE':'DISPONIBLE'}</div></div><span>${t.injected?'✓':'○'}</span></header><p>${esc(t.summary||'')}</p><footer><button class="${t.injected?'ghost':'primary'}" data-toggle-used="threat:${t.id}">${t.injected?'↺ Rendre disponible':'⚡ Injecter'}</button><button data-edit-generic="threat:${t.id}">Modifier</button></footer></article>`).join('');
-  if(tab==='situations')html=state.situations.map(x=>`<article class="library-card ${x.injected?'revealed-secret':''}"><header><div><h3>Situation</h3><div class="subtitle">${x.injected?'INJECTÉE':'DISPONIBLE'}</div></div><span>${x.injected?'✓':'○'}</span></header><p>${esc(x.text||'')}</p><footer><button class="${x.injected?'ghost':'primary'}" data-toggle-used="situation:${x.id}">${x.injected?'↺ Rendre disponible':'⚡ Injecter'}</button><button data-edit-generic="situation:${x.id}">Modifier</button></footer></article>`).join('');
+  if(tab==='threats')html=state.threats.map(t=>`<article class="library-card ${t.injected?'revealed-secret':''}"><header><div><h3>${esc(t.name)}</h3><div class="subtitle">${threatTypeLabel(t.type)} · ${t.injected?'INJECTÉE':'DISPONIBLE'}</div></div><span>${t.injected?'✓':'○'}</span></header><p>${esc(t.summary||'')}</p><footer><button class="${t.injected?'ghost':'primary'}" data-toggle-used="threat:${t.id}">${t.injected?`${uiIcon('actualiser','ui-icon button-ui-icon')} Rendre disponible`:`${uiIcon('eclair','ui-icon button-ui-icon')} Injecter`}</button><button data-edit-generic="threat:${t.id}">Modifier</button></footer></article>`).join('');
+  if(tab==='situations')html=state.situations.map(x=>`<article class="library-card ${x.injected?'revealed-secret':''}"><header><div><h3>Situation</h3><div class="subtitle">${x.injected?'INJECTÉE':'DISPONIBLE'}</div></div><span>${x.injected?'✓':'○'}</span></header><p>${esc(x.text||'')}</p><footer><button class="${x.injected?'ghost':'primary'}" data-toggle-used="situation:${x.id}">${x.injected?`${uiIcon('actualiser','ui-icon button-ui-icon')} Rendre disponible`:`${uiIcon('eclair','ui-icon button-ui-icon')} Injecter`}</button><button data-edit-generic="situation:${x.id}">Modifier</button></footer></article>`).join('');
   if(tab==='rewards')html=state.rewards.map(r=>`<article class="library-card"><header><div><h3>${esc(r.type)}</h3><div class="subtitle">${r.used?'ATTRIBUÉE':'DISPONIBLE'}</div></div></header><p>${esc(r.text)}</p><footer><button data-toggle-used="reward:${r.id}">${r.used?'Réouvrir':'Utilisée'}</button><button data-edit-generic="reward:${r.id}">Modifier</button></footer></article>`).join('');
   if(tab==='blanks')html=state.blanks.map(b=>`<article class="library-card"><header><div><h3>${esc(b.prompt)}</h3><div class="subtitle">${b.resolved?'DEVENU CANON':'INDÉTERMINÉ'}</div></div></header><p>${b.resolved?esc(b.resolution):'La partie peut fournir la réponse.'}</p><footer><button data-edit-generic="blank:${b.id}">${b.resolved?'Modifier':'Définir'}</button></footer></article>`).join('');
   el.innerHTML=`${libraryToolbar(tab)}<div class="library-grid">${html||'<div class="journal-empty">Aucun élément.</div>'}</div>`;bindLibraryActions();
@@ -396,8 +427,8 @@ function bindLibraryActions(){
   $$('[data-lib-reveal]').forEach(b=>b.onclick=()=>{state.contextTab='secrets';revealPendingId=b.dataset.libReveal;switchView('table');renderTable()});
 }
 function renderJournal(){
-  const icon={note:'📝',decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗',secret:'◆',location:'◈',canon:'✦'};
-  $('#journalContent').innerHTML=state.journal.length?state.journal.map(j=>`<article class="journal-entry"><time>${fmtTime(j.createdAt)}</time><div><strong>${icon[j.type]||'📝'} ${esc(locationName(j.locationId))}</strong><p>${esc(j.text)}</p></div><div class="journal-entry-side"><small>${new Date(j.createdAt).toLocaleDateString('fr-FR')}</small><div class="journal-entry-actions"><button class="ghost" data-edit-journal="${j.id}" title="Modifier cette ligne" aria-label="Modifier cette ligne">✎</button><button class="ghost journal-delete" data-delete-journal="${j.id}" title="Effacer cette ligne" aria-label="Effacer cette ligne">×</button></div></div></article>`).join(''):'<div class="journal-empty">Rien n’est encore devenu canon.</div>';
+  const icon={note:uiIcon('plume','ui-icon inline-ui-icon'),decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗',secret:'◆',location:'◈',canon:uiIcon('etoile','ui-icon inline-ui-icon')};
+  $('#journalContent').innerHTML=state.journal.length?state.journal.map(j=>`<article class="journal-entry"><time>${fmtTime(j.createdAt)}</time><div><strong>${icon[j.type]||uiIcon('plume','ui-icon inline-ui-icon')} ${esc(locationName(j.locationId))}</strong><p>${esc(j.text)}</p></div><div class="journal-entry-side"><small>${new Date(j.createdAt).toLocaleDateString('fr-FR')}</small><div class="journal-entry-actions"><button class="ghost" data-edit-journal="${j.id}" title="Modifier cette ligne" aria-label="Modifier cette ligne">${uiIcon('crayon','ui-icon edit-ui-icon small-edit-ui-icon')}</button><button class="ghost journal-delete" data-delete-journal="${j.id}" title="Effacer cette ligne" aria-label="Effacer cette ligne">×</button></div></div></article>`).join(''):'<div class="journal-empty">Rien n’est encore devenu canon.</div>';
   $$('[data-edit-journal]').forEach(b=>b.onclick=()=>editJournalEntry(b.dataset.editJournal));
   $$('[data-delete-journal]').forEach(b=>b.onclick=()=>deleteJournalEntry(b.dataset.deleteJournal));
 }
@@ -431,8 +462,8 @@ function renderQuickNoteHistory(){
   const el=$('#quickNoteHistory');if(!el)return;
   const noteTypes=new Set(['note','decision','quote','question','death','loot','lead']);
   const arr=state.journal.filter(j=>noteTypes.has(j.type));
-  const icon={note:'📝',decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗'};
-  el.innerHTML=arr.length?arr.map(j=>`<article class="note-history-row"><div><span>${icon[j.type]||'📝'}</span><strong>${esc(j.text)}</strong></div><small>${esc(locationName(j.locationId))} · ${fmtTime(j.createdAt)}</small></article>`).join(''):'<div class="empty-mini">Aucune note écrite pour cette session.</div>';
+  const icon={note:uiIcon('plume','ui-icon inline-ui-icon'),decision:'⚑',quote:'💬',question:'❓',death:'💀',loot:'🎁',lead:'🔗'};
+  el.innerHTML=arr.length?arr.map(j=>`<article class="note-history-row"><div><span>${icon[j.type]||uiIcon('plume','ui-icon inline-ui-icon')}</span><strong>${esc(j.text)}</strong></div><small>${esc(locationName(j.locationId))} · ${fmtTime(j.createdAt)}</small></article>`).join(''):'<div class="empty-mini">Aucune note écrite pour cette session.</div>';
 }
 function openQuickNote(){const f=$('#quickNoteForm');f.reset();renderQuickNoteHistory();$('#quickNoteDialog').showModal();setTimeout(()=>f.elements.text.focus(),50)}
 function renderBackupButton(){const n=getBackups().length;$('#btnBackups').textContent=`Backups de sécurité${n?` · ${n}`:''}`}
@@ -448,7 +479,7 @@ function renderSavedSessions(){
 }
 function openSaveChoices(){
   const panel=$('#saveChoicePanel'),users=userSavedSessions(),current=users.find(x=>x.id===state.saveSlotId),canCreate=users.length<MAX_SAVED_SESSIONS;
-  panel.innerHTML=`<div class="save-choice-head"><div><span class="eyebrow">DESTINATION</span><strong>Où sauvegarder l’état actuel ?</strong></div><span>${users.length}/${MAX_SAVED_SESSIONS}</span></div><div class="save-choice-actions">${current?`<button class="primary" data-save-current-slot="${current.id}">↻ Mettre à jour « ${esc(current.name)} »</button>`:''}<button class="${canCreate?'primary':'ghost'}" data-save-new-slot ${canCreate?'':'disabled'}>＋ Nouvelle sauvegarde ${canCreate?`(${MAX_SAVED_SESSIONS-users.length} emplacement${MAX_SAVED_SESSIONS-users.length>1?'s':''} libre${MAX_SAVED_SESSIONS-users.length>1?'s':''})`:'— 15/15'}</button></div>${users.length?`<div class="save-overwrite-title">Ou écraser une sauvegarde existante</div><div class="save-overwrite-list">${users.map(x=>`<button data-overwrite-slot="${x.id}"><strong>${esc(x.name)}</strong><small>${new Date(x.updatedAt).toLocaleString('fr-FR')}</small></button>`).join('')}</div>`:''}`;
+  panel.innerHTML=`<div class="save-choice-head"><div><span class="eyebrow">DESTINATION</span><strong>Où sauvegarder l’état actuel ?</strong></div><span>${users.length}/${MAX_SAVED_SESSIONS}</span></div><div class="save-choice-actions">${current?`<button class="primary" data-save-current-slot="${current.id}">${uiIcon('actualiser','ui-icon button-ui-icon')} Mettre à jour « ${esc(current.name)} »</button>`:''}<button class="${canCreate?'primary':'ghost'}" data-save-new-slot ${canCreate?'':'disabled'}>${uiIcon('plus','ui-icon button-ui-icon')} Nouvelle sauvegarde ${canCreate?`(${MAX_SAVED_SESSIONS-users.length} emplacement${MAX_SAVED_SESSIONS-users.length>1?'s':''} libre${MAX_SAVED_SESSIONS-users.length>1?'s':''})`:'— 15/15'}</button></div>${users.length?`<div class="save-overwrite-title">Ou écraser une sauvegarde existante</div><div class="save-overwrite-list">${users.map(x=>`<button data-overwrite-slot="${x.id}"><strong>${esc(x.name)}</strong><small>${new Date(x.updatedAt).toLocaleString('fr-FR')}</small></button>`).join('')}</div>`:''}`;
   panel.classList.remove('hidden');
   if(current)panel.querySelector('[data-save-current-slot]').onclick=()=>saveCurrentSession(current.id,false);
   const add=panel.querySelector('[data-save-new-slot]');if(add&&!add.disabled)add.onclick=()=>saveCurrentSession(null,true);
@@ -462,7 +493,7 @@ function saveCurrentSession(targetId=null,createNew=false){
 }
 function loadSavedSession(id){const entry=getSavedSessions().find(x=>x.id===id);if(!entry)return;snapshot();state=normalize(clone(entry.state));state.saveSlotId=entry.builtInDemo?null:id;persist();closeHome();render();$('#sessionsDialog').close();toast(entry.builtInDemo?'Démo chargée — sauvegarde-la sous ton propre nom si tu veux la conserver':state.sessionStartedAt?'Partie reprise':'Préparation chargée')}
 function deleteSavedSession(id){if(!confirm('Supprimer cette session sauvegardée ?'))return;setSavedSessions(getSavedSessions().filter(x=>x.id!==id));if(state.saveSlotId===id)state.saveSlotId=null;persist();$('#saveChoicePanel').classList.add('hidden');renderSavedSessions()}
-function launchSession(){const first=!state.sessionStartedAt;createBackup(first?'Début de session':'Reprise de session');commit(()=>{state.sessionStartedAt=state.sessionStartedAt||nowStamp();state.lastAutoBackupAt=Date.now();state.view='table';if(first)state.players.forEach(p=>p.spotlightCount=0)},first?'Session prête à jouer':'Session reprise');switchView('table')}
+function launchSession(){const first=!state.sessionStartedAt;createBackup(first?'Début de session':'Reprise de session');commit(()=>{state.sessionStartedAt=state.sessionStartedAt||nowStamp();if(first||(!state.sessionTimer?.running&&!(state.sessionTimer?.elapsedMs>0)))ensureSessionTimerRunning();state.lastAutoBackupAt=Date.now();state.view='table';if(first)state.players.forEach(p=>p.spotlightCount=0)},first?'Session prête à jouer':'Session reprise');switchView('table')}
 
 function isDemoState(s){return !s?.saveSlotId&&String(s?.title||'').startsWith('Démo ·')}
 function hasMeaningfulState(s){return !!(s&&!isDemoState(s)&&(s.sessionStartedAt||s.saveSlotId||(s.title&&s.title!=='Nouvelle session')||s.players?.length||s.locations?.length||s.npcs?.length||s.secrets?.length||s.threats?.length||s.situations?.length||s.rewards?.length||s.journal?.length||s.thread?.goal||s.strongStart?.text))}
@@ -567,7 +598,6 @@ function parseLocationImport(parsed){
 }
 async function importNpcFile(file){const parsed=JSON.parse(await file.text()),items=parseNpcImport(parsed);if(!items.length)throw new Error('Aucun PNJ valide');commit(()=>{state.npcs.push(...items);state.libraryTab='npcs'},`${items.length} PNJ importé${items.length>1?'s':''}`);if($('#npcDialog')?.open)$('#npcDialog').close();if(state.view==='library')renderLibrary()}
 async function importLocationFile(file){const parsed=JSON.parse(await file.text()),items=parseLocationImport(parsed);if(!items.length)throw new Error('Aucun lieu valide');commit(()=>{state.locations.push(...items);state.previewLocationId=items[0].id;state.libraryTab='locations'},`${items.length} lieu${items.length>1?'x':''} importé${items.length>1?'s':''}`);if($('#locationDialog')?.open)$('#locationDialog').close();if(state.view==='library')renderLibrary()}
-
 
 // ===== V2 · Illustrations locales (IndexedDB, hors sauvegardes JSON) =====
 const ILLUSTRATION_DB_NAME='cockpit-illustrations-v2';
@@ -691,7 +721,7 @@ function openSearch(){const input=$('#searchInput');input.value='';$('#searchRes
 function runSearch(q){q=q.trim().toLowerCase();if(!q){$('#searchResults').innerHTML='<div class="empty-mini">Commence à taper…</div>';return}const results=[];state.locations.forEach(x=>{if(`${x.name} ${x.concept} ${x.situation}`.toLowerCase().includes(q))results.push({type:'Lieu',title:x.name,text:x.situation,action:`location:${x.id}`})});state.npcs.forEach(x=>{if(`${x.name} ${x.role} ${x.identity} ${x.wants} ${x.knows}`.toLowerCase().includes(q))results.push({type:'PNJ',title:x.name,text:x.role,action:`npc:${x.id}`})});state.secrets.forEach(x=>{if(`${x.title} ${x.text}`.toLowerCase().includes(q))results.push({type:'Secret',title:x.title,text:x.text,action:'library:secrets'})});state.journal.forEach(x=>{if(x.text.toLowerCase().includes(q))results.push({type:'Journal',title:locationName(x.locationId),text:x.text,action:'journal'})});$('#searchResults').innerHTML=results.slice(0,30).map(r=>`<button class="search-result" data-search-action="${r.action}"><span class="eyebrow">${r.type}</span><strong>${esc(r.title)}</strong><small>${esc(r.text||'')}</small></button>`).join('')||'<div class="empty-mini">Aucun résultat.</div>';$$('[data-search-action]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.searchAction.split(':');$('#searchDialog').close();if(type==='location'){state.previewLocationId=id;switchView('table');renderTable()}else if(type==='npc')showNpcSheet(id);else if(type==='library'){state.libraryTab=id;switchView('library');renderLibrary()}else switchView('journal')})}
 
 // Navigation and global controls
-$$('.nav-btn[data-view]').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$('#sessionTitle').onchange=e=>commit(()=>state.title=e.target.value.trim()||'Session sans titre',null);$('#btnHome').onclick=showHome;$('#btnHome').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showHome()}};$('#btnHomeResume').onclick=resumeFromHome;$('#btnHomeNew').onclick=()=>{const f=$('#newSessionForm');f.reset();f.elements.name.value='';$('#newSessionDialog').showModal();setTimeout(()=>f.elements.name.focus(),30)};$('#btnHomeImport').onclick=()=>$('#importFile').click();$('#btnHomeSessions').onclick=openSessions;$('#btnUndo').onclick=()=>{const prev=history.pop();if(!prev)return toast('Rien à annuler');state=normalize(JSON.parse(prev));persist();render();toast('Modification annulée')};$('#btnMore').onclick=e=>{e.stopPropagation();$('#moreMenu').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('#moreMenu')&&!e.target.closest('#btnMore'))$('#moreMenu').classList.add('hidden')});$('#btnSearch').onclick=openSearch;$('#searchInput').oninput=e=>runSearch(e.target.value);$('#btnLaunchSession').onclick=launchSession;$('#btnSessions').onclick=openSessions;$('#btnBackups').onclick=openBackups;$('#btnQuickNote').onclick=openQuickNote;$('#btnPlayStrongStart').onclick=playStrongStart;$('#btnSaveSession').onclick=openSaveChoices;$('#sessionStartFx').onclick=hideSessionStartFx;
+$('#btnSessionTimer').onclick=toggleSessionTimer;$('#btnStopSessionTimer').onclick=requestSessionTimerReset;$('#btnCancelTimerReset').onclick=()=>$('#timerResetDialog').close();$('#btnConfirmTimerReset').onclick=resetSessionTimer;$$('.nav-btn[data-view]').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$('#sessionTitle').onchange=e=>commit(()=>state.title=e.target.value.trim()||'Session sans titre',null);$('#btnHome').onclick=showHome;$('#btnHome').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showHome()}};$('#btnHomeResume').onclick=resumeFromHome;$('#btnHomeNew').onclick=()=>{const f=$('#newSessionForm');f.reset();f.elements.name.value='';$('#newSessionDialog').showModal();setTimeout(()=>f.elements.name.focus(),30)};$('#btnHomeImport').onclick=()=>$('#importFile').click();$('#btnHomeSessions').onclick=openSessions;$('#btnUndo').onclick=()=>{const prev=history.pop();if(!prev)return toast('Rien à annuler');state=normalize(JSON.parse(prev));persist();render();toast('Modification annulée')};$('#btnMore').onclick=e=>{e.stopPropagation();$('#moreMenu').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('#moreMenu')&&!e.target.closest('#btnMore'))$('#moreMenu').classList.add('hidden')});$('#btnSearch').onclick=openSearch;$('#searchInput').oninput=e=>runSearch(e.target.value);$('#btnLaunchSession').onclick=launchSession;$('#btnSessions').onclick=openSessions;$('#btnBackups').onclick=openBackups;$('#btnQuickNote').onclick=openQuickNote;$('#btnPlayStrongStart').onclick=playStrongStart;$('#btnSaveSession').onclick=openSaveChoices;$('#sessionStartFx').onclick=hideSessionStartFx;
 $$('.context-tab').forEach(b=>b.onclick=()=>{state.contextTab=b.dataset.context;revealPendingId=null;persist();renderContextPanel()});
 
 // Prep controls
@@ -717,5 +747,5 @@ $('#importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return
 $('#btnDeleteIllustrations').onclick=openIllustrationDeleteDialog;$('#btnAddIllustrationCategory').onclick=openIllustrationCategoryDialog;$('#btnMoveIllustrations').onclick=toggleIllustrationMoveMode;$('#btnImportIllustrations').onclick=openIllustrationImporter;$('#btnExportIllustrations').onclick=exportSelectedIllustrations;$('#btnCancelDeleteIllustrations').onclick=()=>$('#illustrationDeleteDialog').close();$('#btnConfirmDeleteIllustrations').onclick=confirmDeleteSelectedIllustrations;$('#illustrationImportFile').onchange=e=>{prepareIllustrationImport(e.target.files);e.target.value=''};$('#illustrationImportForm').onsubmit=async e=>{e.preventDefault();try{await savePendingIllustrations()}catch(err){console.error(err);toast('Impossible d’importer ces illustrations')}};$('#illustrationImportDialog').addEventListener('close',()=>{pendingIllustrationFiles=[]});$('#illustrationCategoryForm').onsubmit=async e=>{e.preventDefault();await createIllustrationCategory(new FormData(e.target).get('name'))};
 
 ensureDemoSavedSession();
-if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.3',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
+if('serviceWorker' in navigator)window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('service-worker.js?v=2.0.4',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('Service worker',e)}});
 render();
